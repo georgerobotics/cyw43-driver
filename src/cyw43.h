@@ -318,6 +318,18 @@ static inline void cyw43_wifi_ap_get_ssid(cyw43_t *self, size_t *len, const uint
 }
 
 /*!
+ * \brief Get the security authorisation used in AP mode
+ *
+ * For access point (AP) mode, this method can be used to get the security authorisation mode.
+ *
+ * \param self the driver state object. This should always be \c &cyw43_state
+ * \return the current security authorisation mode for the access point
+ */
+static inline uint32_t cyw43_wifi_ap_get_auth(cyw43_t *self) {
+    return self->ap_auth;
+}
+
+/*!
  * \brief Set the the channel for the access point
  *
  * For access point (AP) mode, this method can be used to set the channel used for the wifi access point.
