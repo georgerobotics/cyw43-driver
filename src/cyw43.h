@@ -105,8 +105,8 @@ typedef struct _cyw43_t {
     bool pend_rejoin_wpa;
 
     // AP settings
+    uint32_t ap_auth;
     uint8_t ap_channel;
-    uint8_t ap_auth;
     uint8_t ap_ssid_len;
     uint8_t ap_key_len;
     uint8_t ap_ssid[32];
@@ -373,7 +373,7 @@ static inline void cyw43_wifi_ap_set_password(cyw43_t *self, size_t len, const u
  * \param auth Auth mode for the access point
  */
 static inline void cyw43_wifi_ap_set_auth(cyw43_t *self, uint32_t auth) {
-    self->ap_auth = (uint8_t) auth;
+    self->ap_auth = auth;
 }
 
 /*!
