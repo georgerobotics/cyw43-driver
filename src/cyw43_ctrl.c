@@ -103,6 +103,7 @@ void cyw43_init(cyw43_t *self) {
     self->pend_disassoc = false;
     self->pend_rejoin = false;
     self->pend_rejoin_wpa = false;
+    self->pend_restore_pm = false;
     self->ap_channel = 3;
     self->ap_ssid_len = 0;
     self->ap_key_len = 0;
@@ -233,6 +234,14 @@ STATIC void cyw43_poll_func(void) {
         self->pend_rejoin = false;
         cyw43_ll_wifi_rejoin(&self->cyw43_ll);
         self->wifi_join_state = WIFI_JOIN_STATE_ACTIVE;
+    }
+
+    if (self->pend_restore_pm) {
+        self->pend_restore_pm = false;
+        if (self->saved_pm) {
+            cyw43_wifi_pm(self, self->saved_pm);
+            self->saved_pm = 0;
+        }
     }
 
     if (cyw43_sleep == 0) {
@@ -408,6 +417,12 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
         // STA connected
         self->wifi_join_state = WIFI_JOIN_STATE_ACTIVE;
         cyw43_cb_tcpip_set_link_up(self, CYW43_ITF_STA);
+    }
+
+    // Restore power management value after wifi join
+    if ((self->wifi_join_state & WIFI_JOIN_STATE_KIND_MASK) != 0 && self->saved_pm) {
+        self->pend_restore_pm = true;
+        cyw43_schedule_internal_poll_dispatch(cyw43_poll_func);
     }
 }
 
@@ -609,6 +624,11 @@ int cyw43_wifi_join(cyw43_t *self, size_t ssid_len, const uint8_t *ssid, size_t 
     if (ret) {
         CYW43_THREAD_EXIT;
         return ret;
+    }
+
+    // Disable power management while connecting
+    if (cyw43_wifi_get_pm(self, &self->saved_pm) == 0) {
+        cyw43_wifi_pm(self, self->saved_pm & ~0xf);
     }
 
     ret = cyw43_ll_wifi_join(&self->cyw43_ll, ssid_len, ssid, key_len, key, auth_type, bssid, channel);
