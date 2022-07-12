@@ -126,6 +126,10 @@ typedef struct _cyw43_t {
 
     // mac from otp (or from cyw43_hal_generate_laa_mac if not set)
     uint8_t mac[6];
+
+    #if CYW43_ENABLE_BLUETOOTH
+    bool bt_loaded;
+    #endif
 } cyw43_t;
 
 extern cyw43_t cyw43_state;
@@ -618,6 +622,39 @@ static inline uint32_t cyw43_pm_value(uint8_t pm_mode, uint16_t pm2_sleep_ret_ms
  * \brief Performance power management mode where more power is used to increase performance
  */
 #define CYW43_PERFORMANCE_PM cyw43_pm_value(CYW43_PM2_POWERSAVE_MODE, 20, 1, 1, 1)
+
+#if CYW43_ENABLE_BLUETOOTH
+/*!
+ * \brief Initialise the Bluetooth HCI layer
+ *
+ * \return zero on success
+ */
+int cyw43_bluetooth_hci_init(void);
+
+/*!
+ * \brief Read data from the Bluetooth HCI layer
+ *
+ * \param buf Buffer to be filled with hci data
+ * \param max_size The maximum size of the buffer
+ * \param len Returns the length of the data in the buffer including an initial 4 byte header. The last byte of the header is the packet type
+ * \return zero on success
+ */
+int cyw43_bluetooth_hci_read(uint8_t *buf, uint32_t max_size, uint32_t *len);
+
+/*!
+ * \brief Write data to the Bluetooth HCI layer
+ *
+ * \param buf Data to write
+ * \param len Size of data to send. Must include a 4 byte header. The last byte of the header should be the packet type
+ * \return zero on success
+ */
+int cyw43_bluetooth_hci_write(uint8_t *buf, size_t len);
+
+/*!
+ * \brief Callback for the Bluetooth HCI layer to do processing
+ */
+void cyw43_bluetooth_hci_process(void);
+#endif
 
 //!\} // cyw43_driver doxygen group
 

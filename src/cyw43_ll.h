@@ -35,6 +35,7 @@
 #define CYW43_INCLUDED_CYW43_LL_H
 
 #include <stdbool.h>
+#include "cyw43_config.h"
 
 // External interface
 
@@ -180,6 +181,13 @@
 #define CYW43_PM1_POWERSAVE_MODE          (1) ///< Powersave mode on specified interface without regard for throughput reduction
 #define CYW43_PM2_POWERSAVE_MODE          (2) ///< Powersave mode on specified interface with High throughput
 
+// The maximum block size for transfers on the bus.
+#if CYW43_USE_SPI
+#define CYW43_BUS_MAX_BLOCK_SIZE 64
+#else // SDIO
+#define CYW43_BUS_MAX_BLOCK_SIZE 16384
+#endif
+
 /*!
  * \brief To indicate no specific channel when calling cyw43_ll_wifi_join with bssid specified
  */
@@ -290,12 +298,19 @@ int cyw43_ll_wifi_update_multicast_filter(cyw43_ll_t *self_in, uint8_t *addr, bo
 
 // Returns true while there's work to do
 bool cyw43_ll_has_work(cyw43_ll_t *self);
+bool cyw43_ll_bt_has_work(cyw43_ll_t *self);
 
 // Callbacks to be provided by mid-level interface
 int cyw43_cb_read_host_interrupt_pin(void *cb_data);
 void cyw43_cb_ensure_awake(void *cb_data);
 void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev);
 void cyw43_cb_process_ethernet(void *cb_data, int itf, size_t len, const uint8_t *buf);
+
+// Low level methods used for bluetooth
+void cyw43_ll_write_backplane_reg(cyw43_ll_t *self_in, uint32_t addr, uint32_t val);
+uint32_t cyw43_ll_read_backplane_reg(cyw43_ll_t *self_in, uint32_t addr);
+int cyw43_ll_write_backplane_mem(cyw43_ll_t *self_in, uint32_t addr, uint32_t len, const uint8_t *buf);
+int cyw43_ll_read_backplane_mem(cyw43_ll_t *self_in, uint32_t addr, uint32_t len, uint8_t *buf);
 
 //!\}
 

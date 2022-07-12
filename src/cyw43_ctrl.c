@@ -41,6 +41,10 @@
 #include "cyw43_sdio.h"
 #endif
 
+#if CYW43_ENABLE_BLUETOOTH
+#include "cyw43_btbus.h"
+#endif
+
 #ifdef CYW43_PIN_WL_HOST_WAKE
 #define USE_SDIOIT (0)
 #else
@@ -109,6 +113,10 @@ void cyw43_init(cyw43_t *self) {
 
     cyw43_poll = NULL;
     self->initted = true;
+
+    #if CYW43_ENABLE_BLUETOOTH
+    self->bt_loaded = false;
+    #endif
 }
 
 void cyw43_deinit(cyw43_t *self) {
@@ -133,6 +141,10 @@ void cyw43_deinit(cyw43_t *self) {
     // Power off the WLAN chip and make sure all state is reset.
     cyw43_ll_deinit(&self->cyw43_ll);
     cyw43_init(self);
+
+    #if CYW43_ENABLE_BLUETOOTH
+    self->bt_loaded = false;
+    #endif
 
     CYW43_THREAD_EXIT;
 }
@@ -215,6 +227,13 @@ STATIC void cyw43_poll_func(void) {
     CYW43_STAT_INC(CYW43_RUN_COUNT);
 
     cyw43_t *self = &cyw43_state;
+
+    #if CYW43_ENABLE_BLUETOOTH
+    if (self->bt_loaded && cyw43_ll_bt_has_work(&self->cyw43_ll)) {
+        cyw43_bluetooth_hci_process();
+    }
+    #endif
+
     if (cyw43_ll_has_work(&self->cyw43_ll)) {
         cyw43_ll_process_packets(&self->cyw43_ll);
     }
@@ -721,4 +740,54 @@ int cyw43_gpio_get(cyw43_t *self, int gpio, bool *val) {
     return ret;
 }
 
+#endif
+
+#if CYW43_ENABLE_BLUETOOTH
+STATIC int cyw43_ensure_bt_up(cyw43_t *self) {
+    CYW43_THREAD_ENTER;
+    int ret = cyw43_ensure_up(self);
+    if (ret == 0 && !self->bt_loaded) {
+        ret = cyw43_btbus_init(&self->cyw43_ll); // todo: Passing cyw43_ll is a bit naff
+        if (ret == 0) {
+            self->bt_loaded = true;
+        }
+    }
+    CYW43_THREAD_EXIT;
+    return ret;
+}
+
+// Just load firmware
+int cyw43_bluetooth_hci_init(void) {
+    return cyw43_ensure_bt_up(&cyw43_state);
+}
+
+// Read data
+int cyw43_bluetooth_hci_read(uint8_t *buf, uint32_t max_size, uint32_t *len) {
+    cyw43_t *self = &cyw43_state;
+    int ret = cyw43_ensure_bt_up(self);
+    if (ret) {
+        return ret;
+    }
+    ret = cyw43_btbus_read(buf, max_size, len);
+    if (ret) {
+        CYW43_PRINTF("cyw43_bluetooth_hci_read: failed to read from shared bus\n");
+        return ret;
+    }
+    return 0;
+}
+
+// Write data, buffer needs to include space for a 4 byte header and include this in len
+int cyw43_bluetooth_hci_write(uint8_t *buf, size_t len) {
+    cyw43_t *self = &cyw43_state;
+    int ret = cyw43_ensure_bt_up(self);
+    if (ret) {
+        return ret;
+    }
+    ret = cyw43_btbus_write(buf, len);
+    if (ret) {
+        CYW43_PRINTF("cyw43_bluetooth_hci_write: failed to write to shared bus\n");
+        return ret;
+    }
+    return 0;
+}
 #endif

@@ -70,18 +70,15 @@ extern bool enable_spi_packet_dumping;
 #define CYW43_RAM_SIZE (512 * 1024)
 
 #if CYW43_USE_SPI
-extern const char fw_43439A0_7_95_49_00_start[225240]; // 43439A0-7.95.49.00.combined
-#define CYW43_FW_LEN (224190) // 43439A0.bin
-#define CYW43_CLM_LEN (984) // 43439_raspberrypi_picow_v5_220624.clm_blob
-const uintptr_t fw_data = (uintptr_t)&fw_43439A0_7_95_49_00_start[0];
+#include CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE
 #else
-#define CYW43_FW_LEN (383110) // 7.45.98.50
+#define CYW43_WIFI_FW_LEN (383110) // 7.45.98.50
 extern const char fw_4343WA1_7_45_98_50_start[426094];
 #define CYW43_CLM_LEN (7222)
 const uintptr_t fw_data = (uintptr_t)&fw_4343WA1_7_45_98_50_start[0];
 #endif
 
-#define CYW43_CLM_ADDR (fw_data + ALIGN_UINT(CYW43_FW_LEN, 512))
+#define CYW43_CLM_ADDR (fw_data + ALIGN_UINT(CYW43_WIFI_FW_LEN, 512))
 #define VERIFY_FIRMWARE_DOWNLOAD (0)
 
 #define ALIGN_UINT(val, align) (((val) + (align) - 1) & ~((align) - 1))
@@ -356,11 +353,34 @@ static void cyw43_write_backplane(cyw43_int_t *self, uint32_t addr, size_t size,
     cyw43_set_backplane_window(self, CHIPCOMMON_BASE_ADDRESS);
 }
 
-// sdio and spi have a different max block size
-#if CYW43_USE_SPI
-#define MAX_BLOCK_SIZE 64
-#else
-#define MAX_BLOCK_SIZE 16384
+#if CYW43_ENABLE_BLUETOOTH
+static int cyw43_write_backplane_mem(cyw43_int_t *self, uint32_t addr, uint32_t len, const uint8_t *buf) {
+    assert(len <= CYW43_BUS_MAX_BLOCK_SIZE);
+    while(len > 0) {
+        const uint32_t backplane_addr_start = addr & BACKPLANE_ADDR_MASK;
+        const uint32_t backplane_addr_end = MIN(backplane_addr_start + len, BACKPLANE_ADDR_MASK + 1);
+        const uint32_t backplane_len = backplane_addr_end - backplane_addr_start;
+        cyw43_set_backplane_window(self, addr);
+        int ret = cyw43_write_bytes(self, BACKPLANE_FUNCTION, backplane_addr_start, backplane_len, buf);
+        if (ret != 0) {
+            CYW43_WARN("backplane write 0x%lx,0x%lx failed", addr, backplane_len);
+        }
+        addr += backplane_len;
+        buf += backplane_len;
+        len -= backplane_len;
+    }
+    cyw43_set_backplane_window(self, CHIPCOMMON_BASE_ADDRESS);
+    return 0;
+}
+
+static int cyw43_read_backplane_mem(cyw43_int_t *self, uint32_t addr, uint32_t len, uint8_t *buf) {
+    assert(len <= CYW43_BUS_MAX_BLOCK_SIZE);
+    assert(((addr & BACKPLANE_ADDR_MASK) + len) <= (BACKPLANE_ADDR_MASK + 1));
+    cyw43_set_backplane_window(self, addr);
+    int ret = cyw43_read_bytes(self, BACKPLANE_FUNCTION, addr & BACKPLANE_ADDR_MASK, len, buf);
+    cyw43_set_backplane_window(self, CHIPCOMMON_BASE_ADDRESS);
+    return ret;
+}
 #endif
 
 static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_len, int from_storage, uintptr_t source) {
@@ -369,7 +389,7 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
 
     CYW43_VDEBUG("writing %lu bytes to 0x%lx\n", (uint32_t)len, (uint32_t)addr);
 
-    uint32_t block_size = MAX_BLOCK_SIZE;
+    uint32_t block_size = CYW43_BUS_MAX_BLOCK_SIZE;
     if (from_storage) {
         // reused the spid_buf to copy the data (must be larger than 512 storage block size)
         block_size = sizeof(self->spid_buf);
@@ -452,7 +472,7 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
 
     #if VERIFY_FIRMWARE_DOWNLOAD
     // Verification of 380k takes about 40ms using a 512-byte transfer size
-    const size_t verify_block_size = MAX_BLOCK_SIZE; // so we can verify against storage
+    const size_t verify_block_size = CYW43_BUS_MAX_BLOCK_SIZE; // so we can verify against storage
     uint8_t buf[verify_block_size];
     t_start = cyw43_hal_ticks_us();
     for (size_t offset = 0; offset < len; offset += verify_block_size) {
@@ -1497,10 +1517,12 @@ int cyw43_ll_bus_init(cyw43_ll_t *self_in, const uint8_t *mac) {
         }
 
         // Enable a selection of interrupts
-        if (cyw43_write_reg_u16(self, BUS_FUNCTION, SPI_INTERRUPT_ENABLE_REGISTER,
-            F2_F3_FIFO_RD_UNDERFLOW | F2_F3_FIFO_WR_OVERFLOW |
-            COMMAND_ERROR | DATA_ERROR | F2_PACKET_AVAILABLE |
-            F1_OVERFLOW) != 0) {
+        uint16_t cyw43_interrupts = F2_F3_FIFO_RD_UNDERFLOW | F2_F3_FIFO_WR_OVERFLOW |
+                COMMAND_ERROR | DATA_ERROR | F2_PACKET_AVAILABLE | F1_OVERFLOW;
+        #if CYW43_ENABLE_BLUETOOTH
+        cyw43_interrupts |= F1_INTR;
+        #endif
+        if (cyw43_write_reg_u16(self, BUS_FUNCTION, SPI_INTERRUPT_ENABLE_REGISTER, cyw43_interrupts) != 0) {
             break;
         }
 
@@ -1598,6 +1620,16 @@ backplane_ready:
     #else
     cyw43_write_reg_u8(self, BACKPLANE_FUNCTION, SDIO_CHIP_CLOCK_CSR, SBSDIO_ALP_AVAIL_REQ);
     #endif
+
+    #if CYW43_ENABLE_BLUETOOTH
+    // check we can set the watermark
+    cyw43_write_reg_u8(self, BACKPLANE_FUNCTION, SDIO_FUNCTION2_WATERMARK, 0x10);
+    uint8_t reg_8 = cyw43_read_reg_u8(self, BACKPLANE_FUNCTION, SDIO_FUNCTION2_WATERMARK);
+    if (reg_8 != 0x10) {
+        return -CYW43_EIO;
+    }
+    #endif
+
     for (int i = 0; i < 10; ++i) {
         uint8_t reg = cyw43_read_reg_u8(self, BACKPLANE_FUNCTION, SDIO_CHIP_CLOCK_CSR);
         if (reg & SBSDIO_ALP_AVAIL) {
@@ -1640,10 +1672,10 @@ alp_set:
     cyw43_write_backplane(self, SOCSRAM_BANKX_PDA, 4, 0);
 
     // Take firmware from the address space
-    cyw43_download_resource(self, 0x00000000, CYW43_FW_LEN, 0, fw_data);
+    cyw43_download_resource(self, 0x00000000, CYW43_WIFI_FW_LEN, 0, fw_data);
     /*
     // Take firmware from storage block device
-    cyw43_download_resource(self, 0x00000000, CYW43_FW_LEN, 1, 0x100 + 0x1000);
+    cyw43_download_resource(self, 0x00000000, CYW43_WIFI_FW_LEN, 1, 0x100 + 0x1000);
     */
 
     size_t wifi_nvram_len = ALIGN_UINT(sizeof(wifi_nvram_4343), 64);
@@ -1678,8 +1710,11 @@ ht_ready:
     // Lower F2 Watermark to avoid DMA Hang in F2 when SD Clock is stopped
     cyw43_write_reg_u8(self, BACKPLANE_FUNCTION, SDIO_FUNCTION2_WATERMARK, SDIO_F2_WATERMARK);
     #else
+
+    #if CYW43_ENABLE_BLUETOOTH
     // Set up the interrupt mask and enable interrupts
-    // cyw43_write_backplane(self, SDIO_INT_HOST_MASK, 4, I_HMB_FC_CHANGE);
+    cyw43_write_backplane(self, SDIO_INT_HOST_MASK, 4, I_HMB_FC_CHANGE);
+    #endif
 
     /* Lower F2 Watermark to avoid DMA Hang in F2 when SD Clock is stopped. */
     cyw43_write_reg_u8(self, BACKPLANE_FUNCTION, SDIO_FUNCTION2_WATERMARK, SPI_F2_WATERMARK);
@@ -1691,7 +1726,7 @@ ht_ready:
         #if CYW43_USE_SPI
         // Wait for F2 to be ready
         uint32_t reg = cyw43_read_reg_u32(self, BUS_FUNCTION, SPI_STATUS_REGISTER);
-        if (reg & F2_PACKET_AVAILABLE) {
+        if (reg & STATUS_F2_RX_READY) {
             goto f2_ready;
         }
         #else
@@ -2317,3 +2352,37 @@ bool cyw43_ll_has_work(cyw43_ll_t *self_in) {
     return int_pin == 0;
     #endif
 }
+
+#if CYW43_ENABLE_BLUETOOTH
+
+bool cyw43_ll_bt_has_work(cyw43_ll_t *self_in) {
+    cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
+    uint32_t int_status = cyw43_read_backplane(self, SDIO_INT_STATUS, 4);
+    if (int_status & I_HMB_FC_CHANGE) {
+        cyw43_write_backplane(self, SDIO_INT_STATUS, 4, int_status & I_HMB_FC_CHANGE);
+        return true;
+    }
+    return false;
+}
+
+void cyw43_ll_write_backplane_reg(cyw43_ll_t *self_in, uint32_t addr, uint32_t val) {
+    cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
+    cyw43_write_backplane(self, addr, sizeof(uint32_t), val);
+}
+
+uint32_t cyw43_ll_read_backplane_reg(cyw43_ll_t *self_in, uint32_t addr) {
+    cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
+    return cyw43_read_backplane(self, addr, sizeof(uint32_t));
+}
+
+int cyw43_ll_write_backplane_mem(cyw43_ll_t *self_in, uint32_t addr, uint32_t len, const uint8_t *buf) {
+    cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
+    return cyw43_write_backplane_mem(self, addr, len, buf);
+}
+
+int cyw43_ll_read_backplane_mem(cyw43_ll_t *self_in, uint32_t addr, uint32_t len, uint8_t *buf) {
+    cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
+    return cyw43_read_backplane_mem(self, addr, len, buf);
+}
+
+#endif

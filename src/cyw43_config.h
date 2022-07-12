@@ -50,6 +50,23 @@
 
 // Firmware configuration.
 
+// Whether Bluetooth support is enabled.
+#ifndef CYW43_ENABLE_BLUETOOTH
+#define CYW43_ENABLE_BLUETOOTH (0)
+#endif
+
+// This include should define:
+// - CYW43_WIFI_FW_LEN
+// - CYW43_CLM_LEN
+// - const uintptr_t fw_data
+#ifndef CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE
+#if CYW43_ENABLE_BLUETOOTH
+#define CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE "firmware/wb43439A0_7_95_49_00_combined.h"
+#else
+#define CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE "firmware/w43439A0_7_95_49_00_combined.h"
+#endif
+#endif
+
 // This include should define a wifi_nvram_4343[] variable.
 #ifndef CYW43_WIFI_NVRAM_INCLUDE_FILE
 #define CYW43_WIFI_NVRAM_INCLUDE_FILE "firmware/wifi_nvram_43439.h"
