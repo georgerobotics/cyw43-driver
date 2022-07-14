@@ -466,6 +466,8 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
     #endif
 
     for (size_t offset = 0; offset < len; offset += block_size) {
+        CYW43_EVENT_POLL_HOOK;
+
         size_t sz = block_size;
         if (offset + sz > len) {
             sz = len - offset;
@@ -1416,6 +1418,8 @@ static void cyw43_clm_load(cyw43_int_t *self, const uint8_t *clm_ptr, size_t clm
 
     const size_t clm_dload_chunk_len = CLM_CHUNK_LEN;
     for (size_t off = 0; off < clm_len; off += clm_dload_chunk_len) {
+        CYW43_EVENT_POLL_HOOK;
+
         uint32_t len = clm_dload_chunk_len;
         uint16_t flag = 1 << 12; // DLOAD_HANDLER_VER
         if (off == 0) {
@@ -1497,7 +1501,9 @@ int cyw43_ll_bus_init(cyw43_ll_t *self_in, const uint8_t *mac) {
         }
 
         cyw43_spi_gpio_setup();
+        CYW43_EVENT_POLL_HOOK;
         cyw43_spi_reset();
+        CYW43_EVENT_POLL_HOOK;
 
         // Check test register can be read
         for (int i = 0; i < 10; ++i) {

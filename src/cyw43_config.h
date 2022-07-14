@@ -102,3 +102,9 @@
 #ifndef CYW43_FAIL_FAST_CHECK
 #define CYW43_FAIL_FAST_CHECK(res) (res)
 #endif
+
+// This should be defined by the port if needed, to let background processes
+// run during long blocking operations such as WiFi initialisation.
+#ifndef CYW43_EVENT_POLL_HOOK
+#define CYW43_EVENT_POLL_HOOK
+#endif
