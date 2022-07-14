@@ -102,3 +102,8 @@
 #ifndef CYW43_FAIL_FAST_CHECK
 #define CYW43_FAIL_FAST_CHECK(res) (res)
 #endif
+
+// This should be defined by the port, to let background processes like usb to run
+#ifndef CYW43_EVENT_POLL_HOOK
+#define CYW43_EVENT_POLL_HOOK
+#endif
