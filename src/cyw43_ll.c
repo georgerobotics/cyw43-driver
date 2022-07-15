@@ -1833,11 +1833,20 @@ f2_ready:
 /*******************************************************************************/
 // WiFi stuff
 
-static void cyw43_do_ioctl_u32(cyw43_int_t *self, uint32_t kind, uint32_t cmd, uint32_t val, uint32_t iface) {
+static void cyw43_set_ioctl_u32(cyw43_int_t *self, uint32_t cmd, uint32_t val, uint32_t iface) {
     uint8_t *buf = &self->spid_buf[SDPCM_HEADER_LEN + 16];
     cyw43_put_le32(buf, val);
-    cyw43_do_ioctl(self, kind, cmd, 4, buf, iface);
+    cyw43_do_ioctl(self, SDPCM_SET, cmd, 4, buf, iface);
 }
+
+#if 0
+static uint32_t cyw43_get_ioctl_u32(cyw43_int_t *self, uint32_t cmd, uint32_t iface) {
+    uint8_t *buf = &self->spid_buf[SDPCM_HEADER_LEN + 16];
+    cyw43_put_le32(buf, 0);
+    cyw43_do_ioctl(self, SDPCM_GET, cmd, 4, buf, iface);
+    return cyw43_get_le32(buf);
+}
+#endif
 
 #if 0
 static uint32_t cyw43_read_iovar_u32(cyw43_int_t *self, const char *var, uint32_t iface) {
@@ -1863,7 +1872,7 @@ int cyw43_set_monitor_mode(cyw43_ll_t *self, int value) {
     CYW_ENTER
     self->is_monitor_mode = value;
     cyw43_write_iovar_u32(self, "allmulti", value, WWD_STA_INTERFACE);
-    cyw43_do_ioctl_u32(self, SDPCM_SET, WLC_SET_MONITOR, value, WWD_STA_INTERFACE);
+    cyw43_set_ioctl_u32(self, WLC_SET_MONITOR, value, WWD_STA_INTERFACE);
     CYW_EXIT
     CYW_THREAD_EXIT
 
@@ -1898,7 +1907,7 @@ int cyw43_ll_wifi_on(cyw43_ll_t *self_in, uint32_t country) {
     #endif
 
     // Set antenna to chip antenna
-    cyw43_do_ioctl_u32(self, SDPCM_SET, WLC_SET_ANTDIV, 0, WWD_STA_INTERFACE);
+    cyw43_set_ioctl_u32(self, WLC_SET_ANTDIV, 0, WWD_STA_INTERFACE);
 
     // Set some WiFi config
     cyw43_write_iovar_u32(self, "bus:txglom", 0, WWD_STA_INTERFACE); // tx glomming off
@@ -1993,7 +2002,7 @@ int cyw43_ll_wifi_pm(cyw43_ll_t *self_in, uint32_t pm, uint32_t pm_sleep_ret, ui
     CYW43_PRINTF("assoc_listen: %lu\n", cyw43_read_iovar_u32(self, "assoc_listen", WWD_STA_INTERFACE));
     #endif
 
-    cyw43_do_ioctl_u32(self, SDPCM_SET, WLC_SET_PM, pm, WWD_STA_INTERFACE);
+    cyw43_set_ioctl_u32(self, WLC_SET_PM, pm, WWD_STA_INTERFACE);
 
     // Set GMODE_AUTO
     uint8_t *buf = &self->spid_buf[SDPCM_HEADER_LEN + 16];
@@ -2054,7 +2063,7 @@ int cyw43_ll_wifi_join(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *ssid
     }
 
     CYW43_VDEBUG("Setting wsec=0x%lx\n", auth_type & 0xff);
-    cyw43_do_ioctl_u32(self, SDPCM_SET, WLC_SET_WSEC, auth_type & 0xff, WWD_STA_INTERFACE);
+    cyw43_set_ioctl_u32(self, WLC_SET_WSEC, auth_type & 0xff, WWD_STA_INTERFACE);
 
     // supplicant variable
     CYW43_VDEBUG("Setting sup_wpa=%d\n", auth_type == 0 ? 0 : 1);
@@ -2081,15 +2090,15 @@ int cyw43_ll_wifi_join(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *ssid
 
     // set infrastructure mode
     CYW43_VDEBUG("Setting infra\n");
-    cyw43_do_ioctl_u32(self, SDPCM_SET, WLC_SET_INFRA, 1, WWD_STA_INTERFACE);
+    cyw43_set_ioctl_u32(self, WLC_SET_INFRA, 1, WWD_STA_INTERFACE);
 
     // set auth type (open system)
     CYW43_VDEBUG("Setting auth\n");
-    cyw43_do_ioctl_u32(self, SDPCM_SET, WLC_SET_AUTH, 0, WWD_STA_INTERFACE);
+    cyw43_set_ioctl_u32(self, WLC_SET_AUTH, 0, WWD_STA_INTERFACE);
 
     // set WPA auth mode
     CYW43_VDEBUG("Setting wpa auth 0x%lx\n", wpa_auth);
-    cyw43_do_ioctl_u32(self, SDPCM_SET, WLC_SET_WPA_AUTH, wpa_auth, WWD_STA_INTERFACE);
+    cyw43_set_ioctl_u32(self, WLC_SET_WPA_AUTH, wpa_auth, WWD_STA_INTERFACE);
 
     // allow relevant events through:
     //  EV_SET_SSID=0
@@ -2144,7 +2153,7 @@ int cyw43_ll_wifi_join(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *ssid
 
 void cyw43_ll_wifi_set_wpa_auth(cyw43_ll_t *self_in) {
     cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
-    cyw43_do_ioctl_u32(self, SDPCM_SET, WLC_SET_WPA_AUTH, CYW43_WPA_AUTH_PSK, WWD_STA_INTERFACE);
+    cyw43_set_ioctl_u32(self, WLC_SET_WPA_AUTH, CYW43_WPA_AUTH_PSK, WWD_STA_INTERFACE);
 }
 
 void cyw43_ll_wifi_rejoin(cyw43_ll_t *self_in) {
@@ -2184,7 +2193,7 @@ int cyw43_ll_wifi_ap_init(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *s
     cyw43_write_iovar_n(self, "bsscfg:ssid", 4 + 4 + 32, buf, WWD_STA_INTERFACE);
 
     // set channel
-    cyw43_do_ioctl_u32(self, SDPCM_SET, WLC_SET_CHANNEL, channel, WWD_STA_INTERFACE);
+    cyw43_set_ioctl_u32(self, WLC_SET_CHANNEL, channel, WWD_STA_INTERFACE);
 
     // set security type
     cyw43_write_iovar_u32_u32(self, "bsscfg:wsec", WWD_AP_INTERFACE, auth, WWD_STA_INTERFACE);
@@ -2211,13 +2220,13 @@ int cyw43_ll_wifi_ap_init(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *s
     }
 
     // set GMode to auto (value of 1)
-    cyw43_do_ioctl_u32(self, SDPCM_SET, WLC_SET_GMODE, 1, WWD_AP_INTERFACE);
+    cyw43_set_ioctl_u32(self, WLC_SET_GMODE, 1, WWD_AP_INTERFACE);
 
     // set multicast tx rate to 11Mbps
     cyw43_write_iovar_u32(self, "2g_mrate", 11000000 / 500000, WWD_AP_INTERFACE);
 
     // set DTIM period
-    cyw43_do_ioctl_u32(self, SDPCM_SET, WLC_SET_DTIMPRD, 1, WWD_AP_INTERFACE);
+    cyw43_set_ioctl_u32(self, WLC_SET_DTIMPRD, 1, WWD_AP_INTERFACE);
 
     return 0;
 }
