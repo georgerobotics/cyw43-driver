@@ -485,6 +485,30 @@ int cyw43_wifi_pm(cyw43_t *self, uint32_t pm_in) {
     return ret;
 }
 
+int cyw43_wifi_get_pm(cyw43_t *self, uint32_t *pm_out) {
+    CYW43_THREAD_ENTER;
+    int ret = cyw43_ensure_up(self);
+    if (ret) {
+        CYW43_THREAD_EXIT;
+        return ret;
+    }
+
+    uint32_t pm = 0;
+    uint32_t pm_sleep_ret = 0;
+    uint32_t li_bcn = 0;
+    uint32_t li_dtim = 0;
+    uint32_t li_assoc = 0;
+
+    ret = cyw43_ll_wifi_get_pm(&self->cyw43_ll, &pm, &pm_sleep_ret, &li_bcn, &li_dtim, &li_assoc);
+    if (ret == 0) {
+        // pm_out: 0x00adbrrm
+        *pm_out = cyw43_pm_value((uint8_t)pm, (uint16_t)pm_sleep_ret, (uint8_t)li_bcn, (uint8_t)li_dtim, (uint8_t)li_assoc);
+    }
+    CYW43_THREAD_EXIT;
+
+    return ret;
+}
+
 int cyw43_wifi_get_mac(cyw43_t *self, int itf, uint8_t mac[6]) {
     (void)self;
     (void)itf;

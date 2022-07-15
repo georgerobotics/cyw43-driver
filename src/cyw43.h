@@ -194,6 +194,24 @@ int cyw43_send_ethernet(cyw43_t *self, int itf, size_t len, const void *buf, boo
 int cyw43_wifi_pm(cyw43_t *self, uint32_t pm);
 
 /*!
+ * \brief Get the wifi power management mode
+ *
+ * This method gets the power management mode used by cyw43.
+ * The value is expressed as an unsigned integer 0x00adbrrm where,
+ * m = pm_mode Power management mode
+ * rr = pm2_sleep_ret (in units of 10ms)
+ * b = li_beacon_period
+ * d = li_dtim_period
+ * a = li_assoc
+ * \see cyw43_pm_value for an explanation of these values
+ * This should be called after cyw43_wifi_set_up
+ *
+ * \param pm Power management value
+ * \return 0 on success
+ */
+int cyw43_wifi_get_pm(cyw43_t *self, uint32_t *pm);
+
+/*!
  * \brief Get the wifi link status
  *
  * Returns the status of the wifi link.

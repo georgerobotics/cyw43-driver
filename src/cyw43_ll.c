@@ -244,6 +244,7 @@ static const uint8_t wifi_nvram_4343[] __attribute__((aligned(4))) =
 #define WLC_GET_ANTDIV (63)
 #define WLC_SET_ANTDIV (64)
 #define WLC_SET_DTIMPRD (78)
+#define WLC_GET_PM (85)
 #define WLC_SET_PM (86)
 #define WLC_SET_GMODE (110)
 #define WLC_SET_WSEC (134)
@@ -781,6 +782,7 @@ static const char *ioctl_cmd_name(int id) {
         CASE_RETURN_STRING(WLC_GET_ANTDIV)
         CASE_RETURN_STRING(WLC_SET_ANTDIV)
         CASE_RETURN_STRING(WLC_SET_DTIMPRD)
+        CASE_RETURN_STRING(WLC_GET_PM)
         CASE_RETURN_STRING(WLC_SET_PM)
         CASE_RETURN_STRING(WLC_SET_GMODE)
         CASE_RETURN_STRING(WLC_SET_WSEC)
@@ -1839,16 +1841,13 @@ static void cyw43_set_ioctl_u32(cyw43_int_t *self, uint32_t cmd, uint32_t val, u
     cyw43_do_ioctl(self, SDPCM_SET, cmd, 4, buf, iface);
 }
 
-#if 0
 static uint32_t cyw43_get_ioctl_u32(cyw43_int_t *self, uint32_t cmd, uint32_t iface) {
     uint8_t *buf = &self->spid_buf[SDPCM_HEADER_LEN + 16];
     cyw43_put_le32(buf, 0);
     cyw43_do_ioctl(self, SDPCM_GET, cmd, 4, buf, iface);
     return cyw43_get_le32(buf);
 }
-#endif
 
-#if 0
 static uint32_t cyw43_read_iovar_u32(cyw43_int_t *self, const char *var, uint32_t iface) {
     uint8_t *buf = &self->spid_buf[SDPCM_HEADER_LEN + 16];
     size_t len = strlen(var) + 1;
@@ -1857,7 +1856,6 @@ static uint32_t cyw43_read_iovar_u32(cyw43_int_t *self, const char *var, uint32_
     cyw43_do_ioctl(self, SDPCM_GET, WLC_GET_VAR, len + 4, buf, iface);
     return cyw43_get_le32(buf);
 }
-#endif
 
 #if 0
 #define WLC_SET_MONITOR (108)
@@ -2012,6 +2010,16 @@ int cyw43_ll_wifi_pm(cyw43_ll_t *self_in, uint32_t pm, uint32_t pm_sleep_ret, ui
     cyw43_put_le32(buf, 0); // any
     cyw43_do_ioctl(self, SDPCM_SET, WLC_SET_BAND, 4, buf, WWD_STA_INTERFACE);
 
+    return 0;
+}
+
+int cyw43_ll_wifi_get_pm(cyw43_ll_t *self_in, uint32_t *pm, uint32_t *pm_sleep_ret, uint32_t *li_bcn, uint32_t *li_dtim, uint32_t *li_assoc) {
+    cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
+    *pm_sleep_ret = cyw43_read_iovar_u32(self, "pm2_sleep_ret", WWD_STA_INTERFACE);
+    *li_bcn = cyw43_read_iovar_u32(self, "bcn_li_bcn", WWD_STA_INTERFACE);
+    *li_dtim = cyw43_read_iovar_u32(self, "bcn_li_dtim", WWD_STA_INTERFACE);
+    *li_assoc = cyw43_read_iovar_u32(self, "assoc_listen", WWD_STA_INTERFACE);
+    *pm = cyw43_get_ioctl_u32(self, WLC_GET_PM, WWD_STA_INTERFACE);
     return 0;
 }
 

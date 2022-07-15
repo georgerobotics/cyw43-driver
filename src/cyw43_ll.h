@@ -258,6 +258,7 @@ int cyw43_ll_send_ethernet(cyw43_ll_t *self, int itf, size_t len, const void *bu
 
 int cyw43_ll_wifi_on(cyw43_ll_t *self, uint32_t country);
 int cyw43_ll_wifi_pm(cyw43_ll_t *self, uint32_t pm, uint32_t pm_sleep_ret, uint32_t li_bcn, uint32_t li_dtim, uint32_t li_assoc);
+int cyw43_ll_wifi_get_pm(cyw43_ll_t *self, uint32_t *pm, uint32_t *pm_sleep_ret, uint32_t *li_bcn, uint32_t *li_dtim, uint32_t *li_assoc);
 int cyw43_ll_wifi_scan(cyw43_ll_t *self, cyw43_wifi_scan_options_t *opts);
 
 int cyw43_ll_wifi_join(cyw43_ll_t *self, size_t ssid_len, const uint8_t *ssid, size_t key_len, const uint8_t *key, uint32_t auth_type, const uint8_t *bssid, uint32_t channel);
