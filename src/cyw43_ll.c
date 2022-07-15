@@ -53,7 +53,7 @@ int sdio_transfer(uint32_t cmd, uint32_t arg, uint32_t *resp);
 void sdio_enable_high_speed_4bit(void);
 #endif
 
-#define FLASH_BLOCK_SIZE (512)
+#define CYW43_FLASH_BLOCK_SIZE (512)
 uint32_t storage_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blocks);
 
 struct pbuf;
@@ -429,9 +429,9 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
         uint32_t fw_end;
         if (from_storage) {
             // get the last aligned-1024 bytes
-            uint32_t last_bl = (raw_len - 1) / FLASH_BLOCK_SIZE;
+            uint32_t last_bl = (raw_len - 1) / CYW43_FLASH_BLOCK_SIZE;
             storage_read_blocks(self->spid_buf, source + last_bl - 1, 2);
-            fw_end = raw_len - (last_bl - 1) * FLASH_BLOCK_SIZE;
+            fw_end = raw_len - (last_bl - 1) * CYW43_FLASH_BLOCK_SIZE;
             b = self->spid_buf;
         } else {
             // get the last 800 bytes
@@ -475,7 +475,7 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
         cyw43_set_backplane_window(self, dest_addr);
         const uint8_t *src;
         if (from_storage) {
-            storage_read_blocks(self->spid_buf, source + offset / FLASH_BLOCK_SIZE, block_size / FLASH_BLOCK_SIZE);
+            storage_read_blocks(self->spid_buf, source + offset / CYW43_FLASH_BLOCK_SIZE, block_size / CYW43_FLASH_BLOCK_SIZE);
             src = self->spid_buf;
         } else {
             src = (const uint8_t *)source + offset;
@@ -509,7 +509,7 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
         cyw43_read_bytes(self, BACKPLANE_FUNCTION, dest_addr & BACKPLANE_ADDR_MASK, sz, buf);
         const uint8_t *src;
         if (from_storage) {
-            storage_read_blocks(self->spid_buf, source + offset / FLASH_BLOCK_SIZE, verify_block_size / FLASH_BLOCK_SIZE);
+            storage_read_blocks(self->spid_buf, source + offset / CYW43_FLASH_BLOCK_SIZE, verify_block_size / CYW43_FLASH_BLOCK_SIZE);
             src = self->spid_buf;
         } else {
             src = (const uint8_t *)source + offset;
