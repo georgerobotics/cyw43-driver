@@ -44,6 +44,13 @@
 #define CYW43_USE_SPI (0)
 #endif
 
+// Firmware configuration.
+
+// This include should define a wifi_nvram_4343[] variable.
+#ifndef CYW43_WIFI_NVRAM_INCLUDE_FILE
+#define CYW43_WIFI_NVRAM_INCLUDE_FILE "firmware/wifi_nvram_43439.h"
+#endif
+
 // Timing and timeout configuration.
 
 #ifndef CYW43_IOCTL_TIMEOUT_US

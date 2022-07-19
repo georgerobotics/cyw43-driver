@@ -42,6 +42,8 @@
 #include "cyw43_internal.h"
 #include "cyw43_stats.h"
 
+#include CYW43_WIFI_NVRAM_INCLUDE_FILE
+
 #define CLEAR_SDIO_INT 0
 #define F1_OVERFLOW_CHANGE 0
 
@@ -113,60 +115,6 @@ static void cyw43_xxd(size_t len, const uint8_t *buf) {
     CWY43_PRINTF("\n");
 }
 #endif
-
-#if CYW43_USE_SPI
-#include "wifi_nvram_image.h"
-#else
-static const uint8_t wifi_nvram_4343[] __attribute__((aligned(4))) =
-    // Type1DX_Final_nvram2.txt
-    // 2.4 GHz, 20 MHz BW mode
-    "manfid=0x2d0\x00"
-    "prodid=0x0726\x00"
-    "vendid=0x14e4\x00"
-    "devid=0x43e2\x00"
-    "boardtype=0x0726\x00"
-    "boardrev=0x1202\x00"
-    "boardnum=22\x00"
-    "macaddr=00:90:4c:c5:12:38\x00"
-    "sromrev=11\x00"
-    "boardflags=0x00404201\x00"
-    "boardflags3=0x08000000\x00"
-    "xtalfreq=37400\x00"
-    "nocrc=1\x00"
-    "ag0=0\x00"
-    "aa2g=1\x00"
-    "ccode=ALL\x00"
-    // "pa0itssit=0x20\x00"
-    "extpagain2g=0\x00"
-    "pa2ga0=-145,6667,-751\x00"
-    "AvVmid_c0=0x0,0xc8\x00"
-    "cckpwroffset0=2\x00"
-    "maxp2ga0=74\x00"
-    // "txpwrbckof=6\x00"
-    "cckbw202gpo=0\x00"
-    "legofdmbw202gpo=0x88888888\x00"
-    "mcsbw202gpo=0xaaaaaaaa\x00"
-    "propbw202gpo=0xdd\x00"
-    "ofdmdigfilttype=18\x00"
-    "ofdmdigfilttypebe=18\x00"
-    "papdmode=1\x00"
-    "papdvalidtest=1\x00"
-    "pacalidx2g=48\x00"
-    "papdepsoffset=-22\x00"
-    "papdendidx=58\x00"
-    "il0macaddr=00:90:4c:c5:12:38\x00"
-    "wl0id=0x431b\x00"
-    "muxenab=0x10\x00"
-    // BT COEX deferral limit setting
-    // "btc_params 8 45000\x00"
-    // "btc_params 10 20000\x00"
-    // "spurconfig=0x3\x00"
-    // Antenna diversity
-    "swdiv_en=1\x00"
-    "swdiv_gpio=1\x00"
-    "\x00\x00"
-;
-#endif // CYW43_USE_SPI
 
 /*******************************************************************************/
 // CYW43 constants and types
