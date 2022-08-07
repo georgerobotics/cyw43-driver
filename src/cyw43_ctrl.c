@@ -443,6 +443,23 @@ int cyw43_send_ethernet(cyw43_t *self, int itf, size_t len, const void *buf, boo
 }
 
 /*******************************************************************************/
+// Accept all multicast
+
+int cyw43_set_allmulti(cyw43_t *self, bool value) {
+    CYW43_THREAD_ENTER;
+    int ret = cyw43_ensure_up(self);
+    if (ret) {
+        CYW43_THREAD_EXIT;
+        return ret;
+    }
+
+    ret = cyw43_ll_set_allmulti(&self->cyw43_ll, value);
+    CYW43_THREAD_EXIT;
+
+    return ret;
+}
+
+/*******************************************************************************/
 // WiFi control
 
 STATIC int cyw43_wifi_on(cyw43_t *self, uint32_t country) {
