@@ -179,7 +179,7 @@ void cyw43_cb_tcpip_init(cyw43_t *self, int itf) {
     memcpy(&mdns_hostname[0], CYW43_HOST_NAME, 4);
     cyw43_hal_get_mac_ascii(CYW43_HAL_MAC_WLAN0, 8, 4, &mdns_hostname[4]);
     mdns_hostname[8] = '\0';
-    mdns_resp_add_netif(n, mdns_hostname, 60);
+    mdns_resp_add_netif(n, mdns_hostname);
     #endif
 }
 
