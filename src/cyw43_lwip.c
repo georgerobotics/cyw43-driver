@@ -195,6 +195,7 @@ void cyw43_cb_tcpip_deinit(cyw43_t *self, int itf) {
     #if LWIP_MDNS_RESPONDER
     mdns_resp_remove_netif(n);
     #endif
+    #if !LWIP_SINGLE_NETIF
     for (struct netif *netif = netif_list; netif != NULL; netif = netif->next) {
         if (netif == n) {
             netif_remove(netif);
@@ -202,6 +203,11 @@ void cyw43_cb_tcpip_deinit(cyw43_t *self, int itf) {
             netif->flags = 0;
         }
     }
+    #else
+    netif_remove(n);
+    n->ip_addr.addr = 0;
+    n->flags = 0;
+    #endif
 }
 
 void cyw43_cb_process_ethernet(void *cb_data, int itf, size_t len, const uint8_t *buf) {
