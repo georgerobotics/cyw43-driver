@@ -38,6 +38,7 @@
 #include "cyw43_stats.h"
 #if CYW43_LWIP
 #include "lwip/etharp.h"
+#include "lwip/ethip6.h"
 #include "lwip/dns.h"
 #include "lwip/igmp.h"
 #include "lwip/tcpip.h"
@@ -116,11 +117,30 @@ STATIC err_t cyw43_netif_update_igmp_mac_filter(struct netif *netif, const ip4_a
     return ERR_OK;
 }
 
+#if LWIP_IPV6
+STATIC err_t cyw43_macfilter(struct netif *netif, const ip6_addr_t *group, enum netif_mac_filter_action action) {
+    uint8_t address[6] = { 0x33, 0x33 };
+    memcpy(address + 2, group->addr + 3, 4);
+    if (action != NETIF_ADD_MAC_FILTER && action != NETIF_DEL_MAC_FILTER) {
+        return ERR_VAL;
+    }
+    if (cyw43_wifi_update_multicast_filter(netif->state, address, action == NETIF_ADD_MAC_FILTER)) {
+        return ERR_IF;
+    }
+    return ERR_OK;
+}
+#endif
+
 STATIC err_t cyw43_netif_init(struct netif *netif) {
     netif->linkoutput = cyw43_netif_output;
     netif->output = etharp_output;
     netif->mtu = 1500;
     netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_IGMP;
+    #if LWIP_IPV6
+    netif->output_ip6 = ethip6_output;
+    netif->mld_mac_filter = cyw43_macfilter;
+    netif->flags |= NETIF_FLAG_MLD6;
+    #endif
     cyw43_wifi_get_mac(netif->state, netif->name[1] - '0', netif->hwaddr);
     netif->hwaddr_len = sizeof(netif->hwaddr);
     netif_set_igmp_mac_filter(netif, cyw43_netif_update_igmp_mac_filter);
@@ -183,6 +203,13 @@ void cyw43_cb_tcpip_init(cyw43_t *self, int itf) {
         dns_setserver(0, &ipconfig[3]);
         dhcp_set_struct(n, &self->dhcp_client);
         dhcp_start(n);
+        #if LWIP_IPV6
+        ip6_addr_t ip6_allnodes_ll;
+        ip6_addr_set_allnodes_linklocal(&ip6_allnodes_ll);
+        n->mld_mac_filter(n, &ip6_allnodes_ll, NETIF_ADD_MAC_FILTER);
+        netif_create_ip6_linklocal_address(n, 1);
+        netif_set_ip6_autoconfig_enabled(n, 1);
+        #endif
     } else {
         #if CYW43_NETUTILS
         dhcp_server_init(&self->dhcp_server, &ipconfig[0], &ipconfig[1]);
@@ -202,7 +229,7 @@ void cyw43_cb_tcpip_deinit(cyw43_t *self, int itf) {
     for (struct netif *netif = netif_list; netif != NULL; netif = netif->next) {
         if (netif == n) {
             netif_remove(netif);
-            netif->ip_addr.addr = 0;
+            ip_2_ip4(&netif->ip_addr)->addr = 0;
             netif->flags = 0;
         }
     }
@@ -240,7 +267,7 @@ int cyw43_tcpip_link_status(cyw43_t *self, int itf) {
     struct netif *netif = &self->netif[itf];
     if ((netif->flags & (NETIF_FLAG_UP | NETIF_FLAG_LINK_UP))
         == (NETIF_FLAG_UP | NETIF_FLAG_LINK_UP)) {
-        if (netif->ip_addr.addr != 0) {
+        if (ip_2_ip4(&netif->ip_addr)->addr != 0) {
             return CYW43_LINK_UP;
         } else {
             return CYW43_LINK_NOIP;
