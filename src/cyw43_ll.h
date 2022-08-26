@@ -277,6 +277,9 @@ int cyw43_ll_gpio_get(cyw43_ll_t *self_in, int gpio_n, bool *gpio_en);
 // Get mac address
 int cyw43_ll_wifi_get_mac(cyw43_ll_t *self_in, uint8_t *addr);
 
+// Add/remove multicast address
+int cyw43_ll_wifi_update_multicast_filter(cyw43_ll_t *self_in, uint8_t *addr, bool add);
+
 // Returns true while there's work to do
 bool cyw43_ll_has_work(cyw43_ll_t *self);
 

@@ -259,6 +259,9 @@ static void cyw43_xxd(size_t len, const uint8_t *buf) {
 
 #define SLEEP_MAX (50)
 
+// Multicast registered group addresses
+#define MAX_MULTICAST_REGISTERED_ADDRESS (10)
+
 #define CYW_INT_FROM_LL(ll) ((cyw43_int_t *)(ll))
 #define CYW_INT_TO_LL(in) ((cyw43_ll_t *)(in))
 
@@ -1884,19 +1887,6 @@ int cyw43_ll_wifi_on(cyw43_ll_t *self_in, uint32_t country) {
 
     cyw43_delay_ms(50);
 
-    // Enable multicast ethernet frames on IPv4 mDNS MAC address
-    cyw43_put_le32(buf, 1);
-    buf[4] = 0x01;
-    buf[5] = 0x00;
-    buf[6] = 0x5e;
-    buf[7] = 0x00;
-    buf[8] = 0x00;
-    buf[9] = 0xfb;
-    memset(buf + 10, 0, 9 * 6);
-    cyw43_write_iovar_n(self, "mcast_list", 4 + 10 * 6, buf, WWD_STA_INTERFACE);
-
-    cyw43_delay_ms(50);
-
     // Set the interface as "up"
     cyw43_do_ioctl(self, SDPCM_SET, WLC_UP, 0, NULL, WWD_STA_INTERFACE);
 
@@ -1916,6 +1906,56 @@ int cyw43_ll_wifi_get_mac(cyw43_ll_t *self_in, uint8_t *addr) {
         memcpy(addr, buf, 6);
     }
     return err;
+}
+
+int cyw43_ll_wifi_update_multicast_filter(cyw43_ll_t *self_in, uint8_t *addr, bool add) {
+    cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
+    uint8_t *buf = &self->spid_buf[SDPCM_HEADER_LEN + 16];
+
+    // query the current list
+    memcpy(buf, "mcast_list", 11);
+    memset(buf + 11, 0, 4 + MAX_MULTICAST_REGISTERED_ADDRESS * 6);
+    int err = cyw43_do_ioctl(self, SDPCM_GET, WLC_GET_VAR, 11 + 4 + MAX_MULTICAST_REGISTERED_ADDRESS * 6, buf, WWD_STA_INTERFACE);
+    if (err != 0) {
+        return err;
+    }
+
+    // current number of addresses
+    uint32_t n = cyw43_get_le32(buf);
+    buf += 4;
+
+    for (uint32_t i = 0; i < n; ++i) {
+        if (memcmp(buf + i * 6, addr, 6) == 0) {
+            if (add) {
+                // addr already in the list
+                return 0;
+            } else {
+                // remove this address
+                if (i < n - 1) {
+                    // replace with the end of the list
+                    memcpy(buf + i * 6, buf + (n-1) * 6, 6);
+                }
+                --n;
+            }
+        }
+    }
+    if (add) {
+        if (n == MAX_MULTICAST_REGISTERED_ADDRESS) {
+            return CYW43_FAIL_FAST_CHECK(-CYW43_EPERM);
+        }
+        memcpy(buf + n * 6, addr, 6);
+        ++n;
+    }
+
+    // update number of addresses
+    buf -= 4;
+    cyw43_put_le32(buf, n);
+
+    // write back address list
+    cyw43_write_iovar_n(self, "mcast_list", 4 + MAX_MULTICAST_REGISTERED_ADDRESS * 6, buf, WWD_STA_INTERFACE);
+    cyw43_delay_ms(50);
+
+    return 0;
 }
 
 int cyw43_ll_wifi_pm(cyw43_ll_t *self_in, uint32_t pm, uint32_t pm_sleep_ret, uint32_t li_bcn, uint32_t li_dtim, uint32_t li_assoc) {

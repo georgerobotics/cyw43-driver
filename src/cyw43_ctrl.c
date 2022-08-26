@@ -516,6 +516,13 @@ int cyw43_wifi_get_mac(cyw43_t *self, int itf, uint8_t mac[6]) {
     return 0;
 }
 
+int cyw43_wifi_update_multicast_filter(cyw43_t *self, uint8_t *addr, bool add) {
+    CYW43_THREAD_ENTER;
+    int ret = cyw43_ll_wifi_update_multicast_filter(&self->cyw43_ll, addr, add);
+    CYW43_THREAD_EXIT;
+    return ret;
+}
+
 void cyw43_wifi_set_up(cyw43_t *self, int itf, bool up, uint32_t country) {
     CYW43_THREAD_ENTER;
     if (up) {

@@ -39,6 +39,7 @@
 #if CYW43_LWIP
 #include "lwip/etharp.h"
 #include "lwip/dns.h"
+#include "lwip/igmp.h"
 #include "lwip/tcpip.h"
 #include "netif/ethernet.h"
 #endif
@@ -100,6 +101,21 @@ STATIC err_t cyw43_netif_output(struct netif *netif, struct pbuf *p) {
     return ERR_OK;
 }
 
+STATIC err_t cyw43_netif_update_igmp_mac_filter(struct netif *netif, const ip4_addr_t *group, enum netif_mac_filter_action action) {
+    cyw43_t *self = netif->state;
+    uint8_t mac[] = { 0x01, 0x00, 0x5e, ip4_addr2(group) & 0x7F, ip4_addr3(group), ip4_addr4(group) };
+
+    if (action != IGMP_ADD_MAC_FILTER && action != IGMP_DEL_MAC_FILTER) {
+        return ERR_VAL;
+    }
+
+    if (cyw43_wifi_update_multicast_filter(self, mac, action == IGMP_ADD_MAC_FILTER)) {
+        return ERR_IF;
+    }
+
+    return ERR_OK;
+}
+
 STATIC err_t cyw43_netif_init(struct netif *netif) {
     netif->linkoutput = cyw43_netif_output;
     netif->output = etharp_output;
@@ -107,6 +123,7 @@ STATIC err_t cyw43_netif_init(struct netif *netif) {
     netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_IGMP;
     cyw43_wifi_get_mac(netif->state, netif->name[1] - '0', netif->hwaddr);
     netif->hwaddr_len = sizeof(netif->hwaddr);
+    netif_set_igmp_mac_filter(netif, cyw43_netif_update_igmp_mac_filter);
     return ERR_OK;
 }
 

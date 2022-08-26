@@ -263,6 +263,19 @@ void cyw43_wifi_set_up(cyw43_t *self, int itf, bool up, uint32_t country);
 int cyw43_wifi_get_mac(cyw43_t *self, int itf, uint8_t mac[6]);
 
 /*!
+ * \brief Add/remove multicast group address
+ *
+ * This method adds/removes an address from the multicast filter, allowing
+ * frames sent to this group to be received
+ *
+ * \param self the driver state object. This should always be \c &cyw43_state
+ * \param addr a buffer containing a group mac address
+ * \param add true to add the address, false to remove it
+ * \return 0 on success
+ */
+int cyw43_wifi_update_multicast_filter(cyw43_t *self, uint8_t *addr, bool add);
+
+/*!
  * \brief Perform a wifi scan for wifi networks
  *
  * Start a scan for wifi networks. Results are returned via the callback.
