@@ -73,13 +73,18 @@ extern bool enable_spi_packet_dumping;
 extern const char fw_43439A0_7_95_49_00_start[225240]; // 43439A0-7.95.49.00.combined
 #define CYW43_FW_LEN (224190) // 43439A0.bin
 #define CYW43_CLM_LEN (984) // 43439_raspberrypi_picow_v5_220624.clm_blob
-const uintptr_t fw_data = (uintptr_t)&fw_43439A0_7_95_49_00_start[0];
-#else
-#define CYW43_FW_LEN (383110) // 7.45.98.50
-extern const char fw_4343WA1_7_45_98_50_start[426094];
-#define CYW43_CLM_LEN (7222)
-const uintptr_t fw_data = (uintptr_t)&fw_4343WA1_7_45_98_50_start[0];
+#ifndef CYW43_FW_DATA_ADDR
+#define CYW43_FW_DATA_ADDR &fw_43439A0_7_95_49_00_start[0]
 #endif
+#else
+extern const char fw_4343WA1_7_45_98_50_start[426094];
+#define CYW43_FW_LEN (383110) // 7.45.98.50
+#define CYW43_CLM_LEN (7222)
+#ifndef CYW43_FW_DATA_ADDR
+#define CYW43_FW_DATA_ADDR &fw_4343WA1_7_45_98_50_start[0];
+#endif
+#endif
+const uintptr_t fw_data = (uintptr_t)(CYW43_FW_DATA_ADDR);
 
 #define CYW43_CLM_ADDR (fw_data + ALIGN_UINT(CYW43_FW_LEN, 512))
 #define VERIFY_FIRMWARE_DOWNLOAD (0)
