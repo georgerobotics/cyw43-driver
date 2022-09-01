@@ -102,6 +102,7 @@ STATIC err_t cyw43_netif_output(struct netif *netif, struct pbuf *p) {
     return ERR_OK;
 }
 
+#if LWIP_IGMP
 STATIC err_t cyw43_netif_update_igmp_mac_filter(struct netif *netif, const ip4_addr_t *group, enum netif_mac_filter_action action) {
     cyw43_t *self = netif->state;
     uint8_t mac[] = { 0x01, 0x00, 0x5e, ip4_addr2(group) & 0x7F, ip4_addr3(group), ip4_addr4(group) };
@@ -116,6 +117,7 @@ STATIC err_t cyw43_netif_update_igmp_mac_filter(struct netif *netif, const ip4_a
 
     return ERR_OK;
 }
+#endif
 
 #if LWIP_IPV6
 STATIC err_t cyw43_macfilter(struct netif *netif, const ip6_addr_t *group, enum netif_mac_filter_action action) {
@@ -143,7 +145,9 @@ STATIC err_t cyw43_netif_init(struct netif *netif) {
     #endif
     cyw43_wifi_get_mac(netif->state, netif->name[1] - '0', netif->hwaddr);
     netif->hwaddr_len = sizeof(netif->hwaddr);
+    #if LWIP_IGMP
     netif_set_igmp_mac_filter(netif, cyw43_netif_update_igmp_mac_filter);
+    #endif
     return ERR_OK;
 }
 
