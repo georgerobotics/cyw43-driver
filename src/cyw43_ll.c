@@ -1390,7 +1390,7 @@ static void cyw43_clm_load(cyw43_int_t *self, const uint8_t *clm_ptr, size_t clm
         *(uint16_t *)(buf + 10) = 2;
         *(uint32_t *)(buf + 12) = len;
         *(uint32_t *)(buf + 16) = 0;
-        #pragma GCC diagnostic push
+        #pragma GCC diagnostic pop
         memcpy(buf + 20, clm_ptr + off, len);
 
         CYW43_VDEBUG("clm data send %lu/%zu\n", off + len, clm_len);
@@ -1403,9 +1403,12 @@ static void cyw43_clm_load(cyw43_int_t *self, const uint8_t *clm_ptr, size_t clm
     // Check the status of the download
     memcpy(buf, "clmload_status\x00\x00\x00\x00\x00", 19);
     cyw43_do_ioctl(self, SDPCM_GET, WLC_GET_VAR, 19, buf, WWD_STA_INTERFACE);
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wcast-align"
     if (*(uint32_t *)buf != 0) {
         CYW43_WARN("CLM load failed");
     }
+    #pragma GCC diagnostic pop
     CYW43_VDEBUG("clm data load ok\n");
 }
 
