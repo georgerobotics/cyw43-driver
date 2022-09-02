@@ -135,7 +135,9 @@ STATIC err_t cyw43_macfilter(struct netif *netif, const ip6_addr_t *group, enum 
 
 STATIC err_t cyw43_netif_init(struct netif *netif) {
     netif->linkoutput = cyw43_netif_output;
+    #if LWIP_IPV4
     netif->output = etharp_output;
+    #endif
     netif->mtu = 1500;
     netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_IGMP;
     #if LWIP_IPV6
@@ -171,6 +173,7 @@ void cyw43_cb_tcpip_init(cyw43_t *self, int itf) {
     #else
     #define IP(x) (x)
     #endif
+    #if LWIP_IPV4
     if (itf == 0) {
         // need to zero out to get isconnected() working
         IP4_ADDR(&IP(ipconfig[0]), 0, 0, 0, 0);
@@ -181,19 +184,23 @@ void cyw43_cb_tcpip_init(cyw43_t *self, int itf) {
     }
     IP4_ADDR(&IP(ipconfig[1]), 255, 255, 255, 0);
     IP4_ADDR(&IP(ipconfig[3]), 8, 8, 8, 8);
+    #endif
     #undef IP
 
     struct netif *n = &self->netif[itf];
     n->name[0] = 'w';
     n->name[1] = '0' + itf;
     #if NO_SYS
-    #if LWIP_IPV6
-    netif_add(n, &ipconfig[0].u_addr.ip4, &ipconfig[1].u_addr.ip4, &ipconfig[2].u_addr.ip4, self, cyw43_netif_init, ethernet_input);
+    netif_input_fn input_func = ethernet_input;
     #else
-    netif_add(n, &ipconfig[0], &ipconfig[1], &ipconfig[2], self, cyw43_netif_init, ethernet_input);
+    netif_input_fn input_func = tcpip_input;
     #endif
+    #if LWIP_IPV4
+    netif_add(n, ip_2_ip4(&ipconfig[0]), ip_2_ip4(&ipconfig[1]), ip_2_ip4(&ipconfig[2]), self, cyw43_netif_init, input_func);
+    #elif LWIP_IPV6
+    netif_add(n, self, cyw43_netif_init, input_func);
     #else
-    netif_add(n, &ipconfig[0], &ipconfig[1], &ipconfig[2], self, cyw43_netif_init, tcpip_input);
+    #error Unsupported
     #endif
     netif_set_hostname(n, CYW43_HOST_NAME);
     netif_set_default(n);
@@ -204,9 +211,11 @@ void cyw43_cb_tcpip_init(cyw43_t *self, int itf) {
 //    #endif
 
     if (itf == CYW43_ITF_STA) {
+        #if LWIP_IPV4
         dns_setserver(0, &ipconfig[3]);
         dhcp_set_struct(n, &self->dhcp_client);
         dhcp_start(n);
+        #endif
         #if LWIP_IPV6
         ip6_addr_t ip6_allnodes_ll;
         ip6_addr_set_allnodes_linklocal(&ip6_allnodes_ll);
@@ -224,7 +233,9 @@ void cyw43_cb_tcpip_init(cyw43_t *self, int itf) {
 void cyw43_cb_tcpip_deinit(cyw43_t *self, int itf) {
     struct netif *n = &self->netif[itf];
     if (itf == CYW43_ITF_STA) {
+        #if LWIP_IPV4
         dhcp_stop(n);
+        #endif
     } else {
         #if CYW43_NETUTILS
         dhcp_server_deinit(&self->dhcp_server);
@@ -233,7 +244,9 @@ void cyw43_cb_tcpip_deinit(cyw43_t *self, int itf) {
     for (struct netif *netif = netif_list; netif != NULL; netif = netif->next) {
         if (netif == n) {
             netif_remove(netif);
+            #if LWIP_IPV4
             ip_2_ip4(&netif->ip_addr)->addr = 0;
+            #endif
             netif->flags = 0;
         }
     }
@@ -269,9 +282,21 @@ void cyw43_cb_tcpip_set_link_down(cyw43_t *self, int itf) {
 
 int cyw43_tcpip_link_status(cyw43_t *self, int itf) {
     struct netif *netif = &self->netif[itf];
-    if ((netif->flags & (NETIF_FLAG_UP | NETIF_FLAG_LINK_UP))
-        == (NETIF_FLAG_UP | NETIF_FLAG_LINK_UP)) {
-        if (ip_2_ip4(&netif->ip_addr)->addr != 0) {
+    if ((netif->flags & (NETIF_FLAG_UP | NETIF_FLAG_LINK_UP)) == (NETIF_FLAG_UP | NETIF_FLAG_LINK_UP)) {
+        bool have_address = false;
+        #if LWIP_IPV4
+        have_address = (ip_2_ip4(&netif->ip_addr)->addr != 0);
+        #else
+        for (int i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
+            int state = netif_ip6_addr_state(netif, i);
+            const ip6_addr_t *addr = netif_ip6_addr(netif, i);
+            if (ip6_addr_ispreferred(state) && ip6_addr_isglobal(addr)) {
+                have_address = true;
+                break;
+            }
+        }
+        #endif
+        if (have_address) {
             return CYW43_LINK_UP;
         } else {
             return CYW43_LINK_NOIP;
