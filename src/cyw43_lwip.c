@@ -42,6 +42,7 @@
 #include "lwip/apps/mdns.h"
 #include "lwip/tcpip.h"
 #include "netif/ethernet.h"
+#include "lwip/init.h"
 #endif
 
 #if CYW43_NETUTILS
@@ -174,12 +175,17 @@ void cyw43_cb_tcpip_init(cyw43_t *self, int itf) {
     }
 
     #if LWIP_MDNS_RESPONDER
-    // TODO better to call after IP address is set
-    char mdns_hostname[9];
-    memcpy(&mdns_hostname[0], CYW43_HOST_NAME, 4);
-    cyw43_hal_get_mac_ascii(CYW43_HAL_MAC_WLAN0, 8, 4, &mdns_hostname[4]);
-    mdns_hostname[8] = '\0';
+    char mdns_hostname[sizeof(CYW43_HOST_NAME) + 4];
+    memcpy(&mdns_hostname[0], CYW43_HOST_NAME, sizeof(CYW43_HOST_NAME) - 1);
+    cyw43_hal_get_mac_ascii(CYW43_HAL_MAC_WLAN0, 8, 4, &mdns_hostname[sizeof(CYW43_HOST_NAME) - 1]);
+    mdns_hostname[sizeof(mdns_hostname) - 1] = '\0';
+
+    #if ((LWIP_VERSION) & 0xffffff00) <= (2 << 24 | 1 << 16 | 2 << 8)
     mdns_resp_add_netif(n, mdns_hostname, 60);
+    #else
+    mdns_resp_add_netif(n, mdns_hostname);
+    #endif
+    self->mdns_init = true;
     #endif
 }
 
@@ -193,7 +199,10 @@ void cyw43_cb_tcpip_deinit(cyw43_t *self, int itf) {
         #endif
     }
     #if LWIP_MDNS_RESPONDER
-    mdns_resp_remove_netif(n);
+    if (self->mdns_init) {
+        mdns_resp_remove_netif(n);
+        self->mdns_init = false;
+    }
     #endif
     for (struct netif *netif = netif_list; netif != NULL; netif = netif->next) {
         if (netif == n) {

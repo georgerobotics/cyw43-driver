@@ -47,6 +47,10 @@
 #define USE_SDIOIT (1)
 #endif
 
+#if CYW43_LWIP
+#include "lwip/apps/mdns.h"
+#endif
+
 // Bits 0-3 are an enumeration, while bits 8-11 are flags.
 #define WIFI_JOIN_STATE_KIND_MASK (0x000f)
 #define WIFI_JOIN_STATE_ACTIVE  (0x0001)
@@ -408,6 +412,10 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
         // STA connected
         self->wifi_join_state = WIFI_JOIN_STATE_ACTIVE;
         cyw43_cb_tcpip_set_link_up(self, CYW43_ITF_STA);
+
+        #if LWIP_MDNS_RESPONDER
+        mdns_resp_announce(&self->netif[CYW43_ITF_STA]);
+        #endif
     }
 }
 

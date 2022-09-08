@@ -116,6 +116,7 @@ typedef struct _cyw43_t {
     // lwIP data
     struct netif netif[2];
     struct dhcp dhcp_client;
+    bool mdns_init;
     #endif
 
     #if CYW43_NETUTILS
