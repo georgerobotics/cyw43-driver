@@ -574,7 +574,7 @@ static inline uint32_t cyw43_pm_value(uint8_t pm_mode, uint16_t pm2_sleep_ret_ms
 #define CYW43_DEFAULT_PM cyw43_pm_value(CYW43_PM2_POWERSAVE_MODE, 200, 1, 1, 10)
 
 /*!
- * \brief Aggressive power management mode for optimial power usage at the cost of performance
+ * \brief Aggressive power management mode for optimal power usage at the cost of performance
  */
 #define CYW43_AGGRESSIVE_PM cyw43_pm_value(CYW43_PM2_POWERSAVE_MODE, 2000, 1, 1, 10)
 
