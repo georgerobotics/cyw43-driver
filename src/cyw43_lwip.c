@@ -42,6 +42,7 @@
 #include "lwip/igmp.h"
 #include "lwip/tcpip.h"
 #include "netif/ethernet.h"
+#include "pico/unique_id.h"
 #endif
 
 #if CYW43_NETUTILS
@@ -206,7 +207,13 @@ void cyw43_cb_tcpip_init(cyw43_t *self, int itf) {
     #else
     #error Unsupported
     #endif
-    netif_set_hostname(n, CYW43_HOST_NAME);
+    // locally hack pico id into hostname
+    // this creates an unwanted dep on pico-sdk
+    pico_unique_board_id_t id;
+    pico_get_unique_board_id(&id);
+    static char hostname[16] = {0};
+    sprintf(hostname, "picow-%02x%02x%02x%02x", id.id[4], id.id[5], id.id[6], id.id[7]);
+    netif_set_hostname(n, hostname);
     netif_set_default(n);
     netif_set_up(n);
 
