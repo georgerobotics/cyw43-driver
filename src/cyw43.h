@@ -105,6 +105,8 @@
 #define CYW43_LINK_BADAUTH      (-3)    ///< Authenticatation failure
 //!\}
 
+#define CYW43_MAX_LEN_HOSTNAME  (16)
+
 typedef struct _cyw43_t {
     cyw43_ll_t cyw43_ll;
 
@@ -149,6 +151,7 @@ typedef struct _cyw43_t {
     #if CYW43_ENABLE_BLUETOOTH
     bool bt_loaded;
     #endif
+    char hostname[CYW43_MAX_LEN_HOSTNAME];
 } cyw43_t;
 
 extern cyw43_t cyw43_state;

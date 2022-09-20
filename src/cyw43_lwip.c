@@ -42,7 +42,6 @@
 #include "lwip/igmp.h"
 #include "lwip/tcpip.h"
 #include "netif/ethernet.h"
-#include "pico/unique_id.h"
 #endif
 
 #if CYW43_NETUTILS
@@ -209,11 +208,7 @@ void cyw43_cb_tcpip_init(cyw43_t *self, int itf) {
     #endif
     // locally hack pico id into hostname
     // this creates an unwanted dep on pico-sdk
-    pico_unique_board_id_t id;
-    pico_get_unique_board_id(&id);
-    static char hostname[16] = {0};
-    sprintf(hostname, "picow-%02x%02x%02x%02x", id.id[4], id.id[5], id.id[6], id.id[7]);
-    netif_set_hostname(n, hostname);
+    netif_set_hostname(n, self->hostname);
     netif_set_default(n);
     netif_set_up(n);
 
@@ -243,6 +238,15 @@ void cyw43_cb_tcpip_init(cyw43_t *self, int itf) {
         dhcp_server_init(&self->dhcp_server, &ipconfig[0], &ipconfig[1]);
         #endif
     }
+
+    #if LWIP_MDNS_RESPONDER
+    // TODO better to call after IP address is set
+    char mdns_hostname[9];
+    strncpy(&mdns_hostname[0], self->hostname, 9);
+    cyw43_hal_get_mac_ascii(CYW43_HAL_MAC_WLAN0, 8, 4, &mdns_hostname[4]);
+    mdns_hostname[8] = '\0';
+    mdns_resp_add_netif(n, mdns_hostname, 60);
+    #endif
 }
 
 void cyw43_cb_tcpip_deinit(cyw43_t *self, int itf) {
