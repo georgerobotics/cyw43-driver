@@ -105,6 +105,12 @@
 #define CYW43_LINK_BADAUTH      (-3)    ///< Authenticatation failure
 //!\}
 
+// default hostname. can be overriden by setting the hostname field of the cyw43_t struct
+// *after* cyw43_init has been called
+#ifndef CYW43_HOST_NAME
+#define CYW43_HOST_NAME "PYBD"
+#endif
+
 #define CYW43_MAX_LEN_HOSTNAME  (16)
 
 typedef struct _cyw43_t {
