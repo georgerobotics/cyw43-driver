@@ -38,13 +38,13 @@
 #include <inttypes.h>
 
 #include "cyw43_config.h"
+#include "cyw43_country.h"
 #include "cyw43_ll.h"
 #include "cyw43_internal.h"
 #include "cyw43_stats.h"
 
 #include CYW43_WIFI_NVRAM_INCLUDE_FILE
 
-#define CLEAR_SDIO_INT 0
 #define F1_OVERFLOW_CHANGE 0
 
 #if CYW43_USE_SPI
@@ -958,14 +958,14 @@ static int cyw43_ll_sdpcm_poll_device(cyw43_int_t *self, size_t *len, uint8_t **
 
     cyw43_ll_bus_sleep((void *)self, false);
 
-    #if CLEAR_SDIO_INT
+    #if CYW43_CLEAR_SDIO_INT
     if (!self->had_successful_packet) {
         // Clear interrupt status so that HOST_WAKE/SDIO line is cleared
         CYW43_VDEBUG("Reading SDIO_INT_STATUS\n");
         uint32_t int_status = cyw43_read_backplane(self, SDIO_INT_STATUS, 4);
         if (int_status & I_HMB_SW_MASK) {
             CYW43_STAT_INC(SDIO_INT_CLEAR);
-            CYW43_VDEBUG("Clearing SDIO_INT_STATUS 0x%x\n", int_status & 0xf0);
+            CYW43_VDEBUG("Clearing SDIO_INT_STATUS 0x%x\n", (int)(int_status & 0xf0));
             cyw43_write_backplane(self, SDIO_INT_STATUS, 4, int_status & 0xf0);
         }
     }
@@ -1039,7 +1039,7 @@ static int cyw43_ll_sdpcm_poll_device(cyw43_int_t *self, size_t *len, uint8_t **
             }
         }
 
-        #if CLEAR_SDIO_INT
+        #if CYW43_CLEAR_SDIO_INT
         uint32_t sdio_int = cyw43_read_backplane(self, SDIO_INT_STATUS, 4);
         if (sdio_int & I_HMB_SW_MASK) {
 
@@ -1841,6 +1841,14 @@ int cyw43_ll_wifi_on(cyw43_ll_t *self_in, uint32_t country) {
     cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
 
     uint8_t *buf = &self->spid_buf[SDPCM_HEADER_LEN + 16];
+
+    #if !CYW43_USE_SPI
+    if (country == CYW43_COUNTRY_WORLDWIDE) {
+        // For the 1DX CLM, we need to use revision 17 for the worldwide
+        // country. This increases throughput by about 25% on PYBD.
+        country |= (17 << 16);
+    }
+    #endif
 
     // Set country; takes about 32ms
     memcpy(buf, "country\x00", 8);

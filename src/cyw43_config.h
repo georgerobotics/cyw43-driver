@@ -44,6 +44,10 @@
 #define CYW43_USE_SPI (0)
 #endif
 
+#ifndef CYW43_CLEAR_SDIO_INT
+#define CYW43_CLEAR_SDIO_INT (0)
+#endif
+
 // Firmware configuration.
 
 // This include should define a wifi_nvram_4343[] variable.
