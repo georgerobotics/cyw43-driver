@@ -393,7 +393,7 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
     } else if (ev->event_type == CYW43_EV_PSK_SUP) {
         if (ev->status == 6) { // WLC_SUP_KEYED
             self->wifi_join_state |= WIFI_JOIN_STATE_KEYED;
-        } else if ((ev->status == 4 || ev->status == 8 || ev->status == 11) && ev->reason == 15) {
+        } else if ((ev->status == 4 || ev->status == 8 || ev->status == 10) && ev->reason == 15) {
             // Timeout waiting for key exchange M1/M3/G1
             // Probably at edge of the cell, retry
             self->pend_rejoin = true;
