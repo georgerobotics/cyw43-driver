@@ -265,6 +265,8 @@ static void cyw43_xxd(size_t len, const uint8_t *buf) {
 #define CYW_INT_FROM_LL(ll) ((cyw43_int_t *)(ll))
 #define CYW_INT_TO_LL(in) ((cyw43_ll_t *)(in))
 
+#define CYW_EAPOL_KEY_TIMEOUT (5000)
+
 static int cyw43_ll_sdpcm_poll_device(cyw43_int_t *self, size_t *len, uint8_t **buf);
 static void cyw43_write_iovar_n(cyw43_int_t *self, const char *var, size_t len, const void *buf, uint32_t iface);
 
@@ -2073,8 +2075,8 @@ int cyw43_ll_wifi_join(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *ssid
     cyw43_write_iovar_u32_u32(self, "bsscfg:sup_wpa2_eapver", 0, -1, WWD_STA_INTERFACE);
 
     // wwd_wifi_set_supplicant_eapol_key_timeout
-    CYW43_VDEBUG("Setting sup_wpa_tmo %d\n", 0x9c4);
-    cyw43_write_iovar_u32_u32(self, "bsscfg:sup_wpa_tmo", 0, 0x9c4, WWD_STA_INTERFACE);
+    CYW43_VDEBUG("Setting sup_wpa_tmo %d\n", CYW_EAPOL_KEY_TIMEOUT);
+    cyw43_write_iovar_u32_u32(self, "bsscfg:sup_wpa_tmo", 0, CYW_EAPOL_KEY_TIMEOUT, WWD_STA_INTERFACE);
 
     if (auth_type != 0) {
         // wwd_wifi_set_passphrase
