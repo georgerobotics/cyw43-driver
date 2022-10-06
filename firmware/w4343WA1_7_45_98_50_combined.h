@@ -32576,6 +32576,9 @@ static const unsigned char w4343WA1_7_45_98_50_combined[] CYW43_RESOURCE_ATTRIBU
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
-#define CYW43_WIFI_FW_LEN (383110) // 7.45.98.50
-#define CYW43_CLM_LEN (7222)
-const uintptr_t fw_data = (uintptr_t)&w4343WA1_7_45_98_50_combined[0];
+static const unsigned int w4343WA1_7_45_98_50_combined_len = 390912;
+#define CYW43_WIFI_FW_LEN (383110) // a1_firmware/43439A1.bin
+#define CYW43_CLM_LEN (7222) // a1_firmware/43439A1.clm_blob
+#define CYW43_WIFI_FW_ADDR (w4343WA1_7_45_98_50_combined)
+#define CYW43_RAW_WIFI_FW_LEN (w4343WA1_7_45_98_50_combined_len)
+const uintptr_t fw_data = (uintptr_t)CYW43_WIFI_FW_ADDR;

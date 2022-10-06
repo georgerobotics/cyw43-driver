@@ -42,8 +42,7 @@
 #include "cyw43_ll.h"
 #include "cyw43_internal.h"
 #include "cyw43_stats.h"
-
-#include CYW43_WIFI_NVRAM_INCLUDE_FILE
+#include "cyw43_firmware_defs.h"
 
 #define F1_OVERFLOW_CHANGE 0
 
@@ -54,8 +53,7 @@
 #include "cyw43_sdio.h"
 #endif
 
-#define CYW43_FLASH_BLOCK_SIZE (512)
-uint32_t storage_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blocks);
+int storage_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blocks);
 
 struct pbuf;
 uint16_t pbuf_copy_partial(const struct pbuf *p, void *dataptr, uint16_t len, uint16_t offset);
@@ -68,13 +66,12 @@ extern bool enable_spi_packet_dumping;
 
 #define CYW43_RAM_SIZE (512 * 1024)
 
-// Include the file containing the WiFi+CLM firmware blob as a C array.
-#include CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE
-
-#define CYW43_CLM_ADDR (fw_data + ALIGN_UINT(CYW43_WIFI_FW_LEN, 512))
 #define VERIFY_FIRMWARE_DOWNLOAD (0)
 
 #define ALIGN_UINT(val, align) (((val) + (align) - 1) & ~((align) - 1))
+
+// Wifi firmware padded to this size before appending clm data
+#define WIFI_FW_PADDING 512
 
 #if CYW43_USE_STATS
 // Storage for some debug stats
@@ -100,9 +97,10 @@ static inline void cyw43_put_le32(uint8_t *buf, uint32_t x) {
 #if VERIFY_FIRMWARE_DOWNLOAD
 static void cyw43_xxd(size_t len, const uint8_t *buf) {
     for (int i = 0; i < len; ++i) {
-        CWY43_PRINTF(" %02x", buf[i]);
+        CYW43_PRINTF(" %02x", buf[i]);
+        if (i % 16 == 0) CYW43_PRINTF("\n");
     }
-    CWY43_PRINTF("\n");
+    CYW43_PRINTF("\n");
 }
 #endif
 
@@ -283,6 +281,123 @@ void cyw43_ll_deinit(cyw43_ll_t *self_in) {
 }
 
 /*******************************************************************************/
+// Firmware loading stuff
+
+// Include the file containing the WiFi+CLM firmware blob as a C array.
+#include CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE
+#include CYW43_WIFI_NVRAM_INCLUDE_FILE
+#if CYW43_ENABLE_BLUETOOTH
+#include CYW43_BT_FIRMWARE_INCLUDE_FILE
+#endif
+
+static const cyw43_firmware_details_t* cyw43_firmware_details_func(void) {
+    static const cyw43_firmware_details_t details = {
+        .raw_wifi_fw_len = CYW43_RAW_WIFI_FW_LEN,
+        .wifi_fw_len = CYW43_WIFI_FW_LEN,
+        .clm_len = CYW43_CLM_LEN,
+        .wifi_fw_addr = CYW43_WIFI_FW_ADDR,
+        .clm_addr = CYW43_WIFI_FW_ADDR + ALIGN_UINT(CYW43_WIFI_FW_LEN, WIFI_FW_PADDING),
+        .wifi_nvram_len = sizeof(wifi_nvram_4343), // Was padded to 64 bytes which seems wrong
+        .wifi_nvram_addr = wifi_nvram_4343,
+        #if CYW43_ENABLE_BLUETOOTH
+        .raw_bt_fw_len = CYW43_RAW_BT_FW_LEN,
+        .bt_fw_len = CYW43_BT_FW_LEN,
+        .bt_fw_addr = CYW43_BT_FW_ADDR,
+        #endif
+    };
+    return &details;
+}
+
+// load uncompressed data
+const uint8_t *cyw43_read_uncompressed_firmware(const uint8_t *addr, size_t sz_in, uint8_t *buffer, size_t buffer_sz) {
+    (void)sz_in;
+    (void)buffer;
+    (void)buffer_sz;
+    return addr;
+}
+
+#if CYW43_ENABLE_FIRMWARE_COMPRESSION
+#include "cyw43_gz_read.h"
+
+// Start wifi firmware decompression process from compressed binary in elf
+int cyw43_start_compressed_wifi_firmware(const cyw43_firmware_details_t* fw) {
+    int result = cyw43_gz_read_start(fw->wifi_fw_addr, fw->raw_wifi_fw_len);
+    if (result < 0) {
+        CYW43_PRINTF("Error parsing header: %d\n", result);
+        return result;
+    }
+    assert(result >= (int)(ALIGN_UINT(fw->wifi_fw_len, WIFI_FW_PADDING) + fw->clm_len));
+    #ifndef NDEBUG
+    CYW43_PRINTF("Wi-Fi firmware compressed %u%%\n", fw->raw_wifi_fw_len * 100 / result);
+    #endif
+    return 0;
+}
+
+// Start wifi firmware decompression process from compressed binary in elf
+int cyw43_start_compressed_bt_firmware(__unused const cyw43_firmware_details_t* fw) {
+#if CYW43_ENABLE_BLUETOOTH
+    int result = cyw43_gz_read_start(fw->bt_fw_addr, fw->raw_bt_fw_len);
+    if (result < 0) {
+        CYW43_PRINTF("Error parsing header: %d\n", result);
+        return result;
+    }
+    assert(result >= (int)fw->bt_fw_len);
+    #ifndef NDEBUG
+    CYW43_PRINTF("BT firmware compressed %u%%\n", fw->raw_bt_fw_len * 100 / result);
+    #endif
+    return 0;
+#else
+    return PICO_ERROR_NO_DATA;
+#endif
+}
+
+// Stream from binary compressed in elf
+const uint8_t *cyw43_read_compressed_firmware(const uint8_t *addr, size_t sz_in, uint8_t *buffer, size_t buffer_sz) {
+    assert(sz_in <= buffer_sz);
+    (void)addr;
+    (void)buffer_sz;
+    int sz_out = cyw43_gz_read_next(buffer, sz_in);
+    assert(sz_out >= 0 && sz_out == (int)sz_in);
+    (void)sz_out;
+    return buffer;
+}
+
+void cyw43_end_compressed_firmware(void) {
+    return cyw43_gz_read_end();
+}
+#endif // !CYW43_ENABLE_FIRMWARE_COMPRESSION
+
+#if CYW43_ENABLE_FIRMWARE_COMPRESSION
+const cyw43_firmware_funcs_t *cyw43_get_firmware_funcs_default(void) {
+    static const cyw43_firmware_funcs_t funcs = {
+        .firmware_details = cyw43_firmware_details_func,
+        .start_wifi_fw = cyw43_start_compressed_wifi_firmware,
+        .start_bt_fw = cyw43_start_compressed_bt_firmware,
+        .get_wifi_fw = cyw43_read_compressed_firmware,
+        .get_bt_fw = cyw43_read_compressed_firmware,
+        .get_nvram = cyw43_read_uncompressed_firmware, // never compressed
+        .get_clm = cyw43_read_compressed_firmware,
+        .end = cyw43_end_compressed_firmware,
+    };
+    return &funcs;
+}
+#else
+const cyw43_firmware_funcs_t *cyw43_get_firmware_funcs_default(void) {
+    static const cyw43_firmware_funcs_t funcs = {
+        .firmware_details = cyw43_firmware_details_func,
+        .start_wifi_fw = NULL,
+        .start_bt_fw = NULL,
+        .get_wifi_fw = cyw43_read_uncompressed_firmware,
+        .get_bt_fw = cyw43_read_uncompressed_firmware,
+        .get_nvram = cyw43_read_uncompressed_firmware,
+        .get_clm = cyw43_read_uncompressed_firmware,
+        .end = NULL,
+    };
+    return &funcs;
+}
+#endif
+
+/*******************************************************************************/
 // low level read/write
 
 static uint32_t cyw43_read_reg(cyw43_int_t *self, uint32_t fn, uint32_t reg, size_t size) {
@@ -376,124 +491,124 @@ static int cyw43_read_backplane_mem(cyw43_int_t *self, uint32_t addr, uint32_t l
 }
 #endif
 
-static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_len, int from_storage, uintptr_t source) {
-    // round up len to simplify download
-    size_t len = (raw_len + 255) & ~255;
-
-    CYW43_VDEBUG("writing %lu bytes to 0x%lx\n", (uint32_t)len, (uint32_t)addr);
-
-    uint32_t block_size = CYW43_BUS_MAX_BLOCK_SIZE;
-    if (from_storage) {
-        // reused the spid_buf to copy the data (must be larger than 512 storage block size)
-        block_size = sizeof(self->spid_buf);
-        CYW43_DEBUG("data comes from external storage via buffer of size %u\n", (unsigned int)block_size);
-    }
-
-    if (addr == 0) {
-        // check that firmware is actually there
-
-        // get the last bit of the firmware
-        const uint8_t *b;
-        uint32_t fw_end;
-        if (from_storage) {
-            // get the last aligned-1024 bytes
-            uint32_t last_bl = (raw_len - 1) / CYW43_FLASH_BLOCK_SIZE;
-            storage_read_blocks(self->spid_buf, source + last_bl - 1, 2);
-            fw_end = raw_len - (last_bl - 1) * CYW43_FLASH_BLOCK_SIZE;
-            b = self->spid_buf;
-        } else {
-            // get the last 800 bytes
-            fw_end = 800;
-            b = (const uint8_t *)source + raw_len - fw_end;
-        }
-
-        // get length of trailer
-        fw_end -= 16; // skip DVID trailer
-        uint32_t trail_len = b[fw_end - 2] | b[fw_end - 1] << 8;
-        int found = -1;
-        if (trail_len < 500 && b[fw_end - 3] == '\0') {
-            for (int i = 80; i < (int)trail_len; ++i) {
-                if (strncmp((const char *)&b[fw_end - 3 - i], "Version: ", 9) == 0) {
-                    found = i;
-                    break;
-                }
-            }
-        }
-
-        if (found == -1) {
-            CYW43_WARN("could not find valid firmware\n");
-            return CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
-        }
-
-        // print wifi firmware version info
-        CYW43_DEBUG("%s\n", &b[fw_end - 3 - found]);
-    }
-
-    #if VERIFY_FIRMWARE_DOWNLOAD
-    uint32_t t_start = cyw43_hal_ticks_us();
-    #endif
-
-    for (size_t offset = 0; offset < len; offset += block_size) {
-        CYW43_EVENT_POLL_HOOK;
-
-        size_t sz = block_size;
+// Write firmware to cyw43
+static int cyw43_firmware_write(cyw43_int_t *self, uint32_t dest_addr, size_t len, const uint8_t *src) {
+    for (size_t offset = 0; offset < len; offset += MAX_BLOCK_SIZE) {
+        size_t sz = MAX_BLOCK_SIZE;
         if (offset + sz > len) {
             sz = len - offset;
         }
-        uint32_t dest_addr = addr + offset;
         assert(((dest_addr & BACKPLANE_ADDR_MASK) + sz) <= (BACKPLANE_ADDR_MASK + 1));
         cyw43_set_backplane_window(self, dest_addr);
-        const uint8_t *src;
-        if (from_storage) {
-            storage_read_blocks(self->spid_buf, source + offset / CYW43_FLASH_BLOCK_SIZE, block_size / CYW43_FLASH_BLOCK_SIZE);
-            src = self->spid_buf;
-        } else {
-            src = (const uint8_t *)source + offset;
-        }
-        int ret = cyw43_write_bytes(self, BACKPLANE_FUNCTION, dest_addr & BACKPLANE_ADDR_MASK, sz, src);
+        int ret = cyw43_write_bytes(self, BACKPLANE_FUNCTION, dest_addr & BACKPLANE_ADDR_MASK, sz, src + offset);
         if (ret != 0) {
-
+            assert(false);
             return CYW43_FAIL_FAST_CHECK(ret);
         }
+        dest_addr += sz;
     }
+    return 0;
+}
 
-    #if VERIFY_FIRMWARE_DOWNLOAD
-    uint32_t t_end = cyw43_hal_ticks_us();
-    uint32_t dt = t_end - t_start;
-    CYW43_VDEBUG("done dnload; dt = %u us; speed = %u kbytes/sec\n", (unsigned int)dt, (unsigned int)(len * 1000 / dt));
-    #endif
-
-    #if VERIFY_FIRMWARE_DOWNLOAD
+#if VERIFY_FIRMWARE_DOWNLOAD
+static bool verify_firmware(cyw43_int_t *self, size_t len, const uint8_t *source) {
     // Verification of 380k takes about 40ms using a 512-byte transfer size
     const size_t verify_block_size = CYW43_BUS_MAX_BLOCK_SIZE; // so we can verify against storage
     uint8_t buf[verify_block_size];
-    t_start = cyw43_hal_ticks_us();
+    uint32_t t_start = cyw43_hal_ticks_us();
     for (size_t offset = 0; offset < len; offset += verify_block_size) {
         size_t sz = verify_block_size;
         if (offset + sz > len) {
             sz = len - offset;
         }
-        uint32_t dest_addr = addr + offset;
+        uint32_t dest_addr = offset;
         assert(((dest_addr & BACKPLANE_ADDR_MASK) + sz) <= (BACKPLANE_ADDR_MASK + 1));
         cyw43_set_backplane_window(self, dest_addr);
         cyw43_read_bytes(self, BACKPLANE_FUNCTION, dest_addr & BACKPLANE_ADDR_MASK, sz, buf);
-        const uint8_t *src;
-        if (from_storage) {
-            storage_read_blocks(self->spid_buf, source + offset / CYW43_FLASH_BLOCK_SIZE, verify_block_size / CYW43_FLASH_BLOCK_SIZE);
-            src = self->spid_buf;
-        } else {
-            src = (const uint8_t *)source + offset;
-        }
+        const uint8_t *src = cyw43_get_firmware_funcs()->get_wifi_fw(source + offset, sz, self->spid_buf, sizeof(self->spid_buf));
         if (memcmp(buf, src, sz) != 0) {
             CYW43_WARN("fail verify at address 0x%08x:\n", (unsigned int)dest_addr);
             cyw43_xxd(sz, src);
             cyw43_xxd(sz, buf);
-            return CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
+            return false;
         }
     }
-    t_end = cyw43_hal_ticks_us();
-    dt = t_end - t_start;
-    CYW43_DEBUG("done verify; dt = %u us; speed = %u kbytes/sec\n", (unsigned int)dt, (unsigned int)(len * 1000 / dt));
+    uint32_t dt = cyw43_hal_ticks_us() - t_start;
+    CYW43_DEBUG("done verify; dt = %u us; speed = %u kbytes/sec\n", (uint)dt, (uint)(len * 1000 / dt));
+    return true;
+    }
+#endif
+
+
+static int cyw43_download_firmware(cyw43_int_t *self, const cyw43_firmware_details_t *firmware_details) {
+    // round up len to simplify download
+    const size_t padded_len = ALIGN_UINT(firmware_details->wifi_fw_len, WIFI_FW_PADDING);
+    CYW43_VDEBUG("download %lu firmware bytes\n", (uint32_t)len);
+
+    uint32_t t_start = cyw43_hal_ticks_us();
+    size_t offset = 0;
+
+    // We check the end of the firmware for version information
+    const size_t check_size = 800;
+    const size_t size_before_check = firmware_details->wifi_fw_len - check_size;
+    const size_t size_before_check_aligned = (size_before_check) & ~3;
+    const size_t check_size_aligned = check_size + (size_before_check & 3);
+    const size_t last_chunk_size = padded_len - size_before_check_aligned;
+    static_assert(sizeof(self->spid_buf) > (check_size + WIFI_FW_PADDING + 4));
+    while(offset < size_before_check_aligned) {
+        CYW43_EVENT_POLL_HOOK;
+        size_t sz = sizeof(self->spid_buf);
+        if ((offset + sz) > size_before_check_aligned) {
+            sz = size_before_check_aligned - offset;
+        }
+        // Load a block of firmware data
+        const uint8_t *src = cyw43_get_firmware_funcs()->get_wifi_fw(firmware_details->wifi_fw_addr + offset, sz, self->spid_buf, sizeof(self->spid_buf));
+        int ret = cyw43_firmware_write(self, offset, sz, src);
+        if (ret < 0) return ret;
+        offset += sz;
+    }
+
+    // Now load and program the end of the firmware
+    CYW43_EVENT_POLL_HOOK;
+    memset(self->spid_buf, 0, sizeof(self->spid_buf));
+    const uint8_t *src = cyw43_get_firmware_funcs()->get_wifi_fw(firmware_details->wifi_fw_addr + offset, last_chunk_size, self->spid_buf, sizeof(self->spid_buf));
+
+    int ret = cyw43_firmware_write(self, offset, last_chunk_size, src);
+    if (ret < 0) return ret;
+
+    // check that firmware looks correct by checking we can find version info
+    const size_t fw_end = check_size_aligned - 16; // skip DVID trailer
+
+    // get length of trailer
+    size_t trail_len = src[fw_end - 2] | src[fw_end - 1] << 8;
+    assert(trail_len > 0 && trail_len < last_chunk_size);
+
+    // Search for version
+    int found = -1;
+    if (trail_len < 500 && src[fw_end - 3] == '\0') {
+        for (int i = 80; i < (int)trail_len; ++i) {
+            if (strncmp((const char *)&src[fw_end - 3 - i], "Version: ", 9) == 0) {
+                found = i;
+                break;
+            }
+        }
+    }
+
+    if (found == -1) {
+        CYW43_WARN("could not find valid firmware\n");
+        assert(false);
+        return CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
+    }
+
+    // print wifi firmware version info
+    CYW43_DEBUG("%s\n", &src[fw_end - 3 - found]);
+
+    #if CYW43_VERBOSE_DEBUG
+    uint32_t t_end = cyw43_hal_ticks_us();
+    uint32_t dt = t_end - t_start;
+    CYW43_VDEBUG("done dnload; dt = %u us; speed = %u kbytes/sec\n", (uint)dt, (uint)(len * 1000 / dt));
+    #else
+    (void)t_start;
     #endif
 
     return 0;
@@ -1408,8 +1523,10 @@ static void cyw43_clm_load(cyw43_int_t *self, const uint8_t *clm_ptr, size_t clm
         *(uint32_t *)(buf + 12) = len;
         *(uint32_t *)(buf + 16) = 0;
         #pragma GCC diagnostic pop
-        memcpy(buf + 20, clm_ptr + off, len);
-
+        const void *data = cyw43_get_firmware_funcs()->get_clm(clm_ptr + off, len, buf + 20, sizeof(buf) - 20);
+        if (data != buf + 20) {
+            memcpy(buf + 20, data, len);
+        }
         CYW43_VDEBUG("clm data send %lu/%zu\n", off + len, clm_len);
 
         // Send data aligned to 8 bytes; padding comes from junk at end of buf
@@ -1423,7 +1540,8 @@ static void cyw43_clm_load(cyw43_int_t *self, const uint8_t *clm_ptr, size_t clm
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wcast-align"
     if (*(uint32_t *)buf != 0) {
-        CYW43_WARN("CLM load failed");
+        CYW43_WARN("CLM load failed\n");
+        assert(false);
     }
     #pragma GCC diagnostic pop
     CYW43_VDEBUG("clm data load ok\n");
@@ -1457,6 +1575,7 @@ static void cyw43_write_iovar_n(cyw43_int_t *self, const char *var, size_t len, 
 
 int cyw43_ll_bus_init(cyw43_ll_t *self_in, const uint8_t *mac) {
     cyw43_int_t *self = (void *)self_in;
+    int exit_status = 0;
 
     self->startup_t0 = cyw43_hal_ticks_us();
 
@@ -1664,19 +1783,55 @@ alp_set:
     cyw43_write_backplane(self, SOCSRAM_BANKX_INDEX, 4, 0x3);
     cyw43_write_backplane(self, SOCSRAM_BANKX_PDA, 4, 0);
 
-    // Take firmware from the address space
-    cyw43_download_resource(self, 0x00000000, CYW43_WIFI_FW_LEN, 0, fw_data);
-    /*
-    // Take firmware from storage block device
-    cyw43_download_resource(self, 0x00000000, CYW43_WIFI_FW_LEN, 1, 0x100 + 0x1000);
-    */
+    const cyw43_firmware_details_t *firmware_details = cyw43_get_firmware_funcs()->firmware_details();
 
-    size_t wifi_nvram_len = ALIGN_UINT(sizeof(wifi_nvram_4343), 64);
-    const uint8_t *wifi_nvram_data = wifi_nvram_4343;
-    cyw43_download_resource(self, CYW43_RAM_SIZE - 4 - wifi_nvram_len, wifi_nvram_len, 0, (uintptr_t)wifi_nvram_data);
-    uint32_t sz = ((~(wifi_nvram_len / 4) & 0xffff) << 16) | (wifi_nvram_len / 4);
-    cyw43_write_backplane(self, CYW43_RAM_SIZE - 4, 4, sz);
+    // start firmware download
+    if (cyw43_get_firmware_funcs()->start_wifi_fw && cyw43_get_firmware_funcs()->start_wifi_fw(firmware_details) != 0) {
+        assert(false);
+        return CYW43_EIO;
+    }
 
+    // download firmware
+    if (cyw43_download_firmware(self, firmware_details) != 0) {
+        assert(false);
+        return CYW43_EIO;
+    }
+
+    #if VERIFY_FIRMWARE_DOWNLOAD
+    // restart firmware download
+    if (cyw43_get_firmware_funcs()->end) {
+        cyw43_get_firmware_funcs()->end();
+    }
+    if (cyw43_get_firmware_funcs()->start_wifi_fw && cyw43_get_firmware_funcs()->start_wifi_fw(firmware_details) != 0) {
+        assert(false);
+        return CYW43_EIO;
+    }
+    if (!verify_firmware(self, ALIGN_UINT(firmware_details->wifi_fw_len, WIFI_FW_PADDING), firmware_details->wifi_fw_addr)) {
+        assert(false);
+        return CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
+    }
+    #endif
+
+    // Write nvram in blocks in case it's saved elsewhere
+    const size_t block_size = sizeof(self->spid_buf) / 4;
+    for(size_t offset = 0; offset < firmware_details->wifi_nvram_len; offset += block_size) {
+        size_t sz = block_size;
+        if (offset + sz > firmware_details->wifi_nvram_len) {
+            sz = firmware_details->wifi_nvram_len - offset;
+        }
+        // load nvram
+        const uint8_t *nvram_source = cyw43_get_firmware_funcs()->get_nvram(firmware_details->wifi_nvram_addr + offset,
+                sz, self->spid_buf, sizeof(self->spid_buf));
+        if (!nvram_source) {
+            assert(false);
+            return CYW43_EIO;
+        }
+        cyw43_firmware_write(self, CYW43_RAM_SIZE - 4 - firmware_details->wifi_nvram_len + offset, sz, nvram_source);
+    }
+    uint32_t nvram_sz = ((~(firmware_details->wifi_nvram_len / 4) & 0xffff) << 16) | (firmware_details->wifi_nvram_len / 4);
+    cyw43_write_backplane(self, CYW43_RAM_SIZE - 4, 4, nvram_sz);
+
+    // Start wifi
     reset_device_core(self, CORE_WLAN_ARM, false);
     device_core_is_up(self, CORE_WLAN_ARM);
 
@@ -1689,7 +1844,8 @@ alp_set:
         cyw43_delay_ms(1);
     }
     CYW43_WARN("HT not ready\n");
-    return -CYW43_EIO;
+    exit_status = -CYW43_EIO;
+    goto finish;
 
 ht_ready:
 
@@ -1731,7 +1887,8 @@ ht_ready:
         cyw43_delay_ms(1);
     }
     CYW43_WARN("F2 not ready\n");
-    return -CYW43_EIO;
+    exit_status = -CYW43_EIO;
+    goto finish;
 
 f2_ready:
 
@@ -1786,7 +1943,7 @@ f2_ready:
 
     // Load the CLM data; it sits just after main firmware
     CYW43_VDEBUG("cyw43_clm_load start\n");
-    cyw43_clm_load(self, (const uint8_t *)CYW43_CLM_ADDR, CYW43_CLM_LEN);
+    cyw43_clm_load(self, (const uint8_t *)firmware_details->clm_addr, firmware_details->clm_len);
     CYW43_VDEBUG("cyw43_clm_load done\n");
 
     cyw43_write_iovar_u32(self, "bus:txglom", 0, WWD_STA_INTERFACE); // tx glomming off
@@ -1815,7 +1972,11 @@ f2_ready:
         cyw43_write_iovar_n(self, "cur_etheraddr", 6, mac, WWD_STA_INTERFACE);
     }
 
-    return 0;
+finish:
+    if (cyw43_get_firmware_funcs()->end) {
+        cyw43_get_firmware_funcs()->end();
+    }
+    return exit_status;
 }
 
 /*******************************************************************************/
