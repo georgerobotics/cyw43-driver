@@ -43,6 +43,7 @@
 #include "cyw43_stats.h"
 
 #include CYW43_WIFI_NVRAM_INCLUDE_FILE
+#include CYW43_WIFI_FIRMWARE_INCLUDE_FILE
 
 #define CLEAR_SDIO_INT 0
 #define F1_OVERFLOW_CHANGE 0
@@ -68,19 +69,6 @@ extern bool enable_spi_packet_dumping;
 #define USE_KSO (1)
 
 #define CYW43_RAM_SIZE (512 * 1024)
-
-#if CYW43_USE_SPI
-extern const char fw_43439A0_7_95_49_00_start[225240]; // 43439A0-7.95.49.00.combined
-#define CYW43_FW_LEN (224190) // 43439A0.bin
-#define CYW43_CLM_LEN (984) // 43439_raspberrypi_picow_v5_220624.clm_blob
-const uintptr_t fw_data = (uintptr_t)&fw_43439A0_7_95_49_00_start[0];
-#else
-#define CYW43_FW_LEN (383110) // 7.45.98.50
-extern const char fw_4343WA1_7_45_98_50_start[426094];
-#define CYW43_CLM_LEN (7222)
-const uintptr_t fw_data = (uintptr_t)&fw_4343WA1_7_45_98_50_start[0];
-#endif
-
 #define CYW43_CLM_ADDR (fw_data + ALIGN_UINT(CYW43_FW_LEN, 512))
 #define VERIFY_FIRMWARE_DOWNLOAD (0)
 

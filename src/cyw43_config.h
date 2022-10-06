@@ -51,6 +51,11 @@
 #define CYW43_WIFI_NVRAM_INCLUDE_FILE "firmware/wifi_nvram_43439.h"
 #endif
 
+// This include should define fw_data, CYW43_FW_LEN and CYW43_CLM_LEN
+#ifndef CYW43_WIFI_FIRMWARE_INCLUDE_FILE
+#define CYW43_WIFI_FIRMWARE_INCLUDE_FILE "wifi_firmware_43439.h"
+#endif
+
 // Timing and timeout configuration.
 
 #ifndef CYW43_IOCTL_TIMEOUT_US
