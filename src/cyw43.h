@@ -159,7 +159,7 @@ void cyw43_deinit(cyw43_t *self);
  * \param cmd the command to send
  * \param len the amount of data to send with the commannd
  * \param buf a buffer containing the data to send
- * \param itf the interface to use, either CYW43_ITF_STA or CYW43_ITF_AP
+ * \param iface the interface to use, either CYW43_ITF_STA or CYW43_ITF_AP
  * \return 0 on success
  */
 int cyw43_ioctl(cyw43_t *self, uint32_t cmd, size_t len, uint8_t *buf, uint32_t iface);
