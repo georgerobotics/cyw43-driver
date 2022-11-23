@@ -2055,7 +2055,9 @@ int cyw43_ll_wifi_join(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *ssid
     }
 
     uint32_t wpa_auth = 0;
-    if (auth_type == CYW43_AUTH_WPA2_AES_PSK || auth_type == CYW43_AUTH_WPA2_MIXED_PSK) {
+    if (auth_type == CYW43_AUTH_OPEN) {
+        wpa_auth = 0;
+    } else if (auth_type == CYW43_AUTH_WPA2_AES_PSK || auth_type == CYW43_AUTH_WPA2_MIXED_PSK) {
         wpa_auth = CYW43_WPA2_AUTH_PSK;
     } else if (auth_type == CYW43_AUTH_WPA_TKIP_PSK) {
         wpa_auth = CYW43_WPA_AUTH_PSK;
