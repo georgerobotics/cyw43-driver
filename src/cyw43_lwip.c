@@ -175,15 +175,20 @@ void cyw43_cb_tcpip_init(cyw43_t *self, int itf) {
     #endif
     #if LWIP_IPV4
     if (itf == 0) {
+        #if LWIP_DHCP
         // need to zero out to get isconnected() working
         IP4_ADDR(&IP(ipconfig[0]), 0, 0, 0, 0);
-        IP4_ADDR(&IP(ipconfig[2]), 192, 168, 0, 1);
+        #else
+        // using static IP address
+        IP(ipconfig[0]).addr = PP_HTONL(CYW43_DEFAULT_IP_STA_ADDRESS);
+        #endif
+        IP(ipconfig[2]).addr = PP_HTONL(CYW43_DEFAULT_IP_STA_GATEWAY);
     } else {
-        IP4_ADDR(&IP(ipconfig[0]), 192, 168, 4, 1);
-        IP4_ADDR(&IP(ipconfig[2]), 192, 168, 4, 1);
+        IP(ipconfig[0]).addr = PP_HTONL(CYW43_DEFAULT_IP_AP_ADDRESS);
+        IP(ipconfig[2]).addr = PP_HTONL(CYW43_DEFAULT_IP_AP_GATEWAY);
     }
-    IP4_ADDR(&IP(ipconfig[1]), 255, 255, 255, 0);
-    IP4_ADDR(&IP(ipconfig[3]), 8, 8, 8, 8);
+    IP(ipconfig[1]).addr = PP_HTONL(CYW43_DEFAULT_IP_MASK);
+    IP(ipconfig[3]).addr = PP_HTONL(CYW43_DEFAULT_IP_DNS);
     #endif
     #undef IP
 
