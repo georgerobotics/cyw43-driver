@@ -115,7 +115,7 @@ typedef struct _cyw43_t {
     #if CYW43_LWIP
     // lwIP data
     struct netif netif[2];
-    #if LWIP_IPV4
+    #if LWIP_IPV4 && LWIP_DHCP
     struct dhcp dhcp_client;
     #endif
     #endif

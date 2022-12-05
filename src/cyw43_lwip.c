@@ -217,9 +217,13 @@ void cyw43_cb_tcpip_init(cyw43_t *self, int itf) {
 
     if (itf == CYW43_ITF_STA) {
         #if LWIP_IPV4
+        #if LWIP_DNS
         dns_setserver(0, &ipconfig[3]);
+        #endif
+        #if LWIP_DHCP
         dhcp_set_struct(n, &self->dhcp_client);
         dhcp_start(n);
+        #endif
         #endif
         #if LWIP_IPV6
         ip6_addr_t ip6_allnodes_ll;
@@ -238,7 +242,7 @@ void cyw43_cb_tcpip_init(cyw43_t *self, int itf) {
 void cyw43_cb_tcpip_deinit(cyw43_t *self, int itf) {
     struct netif *n = &self->netif[itf];
     if (itf == CYW43_ITF_STA) {
-        #if LWIP_IPV4
+        #if LWIP_IPV4 && LWIP_DHCP
         dhcp_stop(n);
         #endif
     } else {
