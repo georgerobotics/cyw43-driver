@@ -49,12 +49,14 @@
  */
 
 // IOCTL commands
+// Bottom bit is used to indicate "set", so divide by 2 to get real ioctl value
 #define CYW43_IOCTL_GET_SSID            (0x32)
 #define CYW43_IOCTL_GET_CHANNEL         (0x3a)
 #define CYW43_IOCTL_SET_DISASSOC        (0x69)
 #define CYW43_IOCTL_GET_ANTDIV          (0x7e)
 #define CYW43_IOCTL_SET_ANTDIV          (0x81)
 #define CYW43_IOCTL_SET_MONITOR         (0xd9)
+#define CYW43_IOCTL_GET_RSSI            (0xfe)
 #define CYW43_IOCTL_GET_VAR             (0x20c)
 #define CYW43_IOCTL_SET_VAR             (0x20f)
 

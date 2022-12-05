@@ -337,6 +337,18 @@ int cyw43_wifi_join(cyw43_t *self, size_t ssid_len, const uint8_t *ssid, size_t 
 int cyw43_wifi_leave(cyw43_t *self, int itf);
 
 /*!
+ * \brief Get the signal strength (RSSI) of the wifi network
+ *
+ * For STA (client) mode, returns the signal strength or RSSI of the wifi network.
+ * An RSSI value of zero is returned if you call this function before a network is connected.
+ *
+ * \param self the driver state object. This should always be \c &cyw43_state
+ * \param rssi a pointer to which the returned RSSI value is stored.
+ * \return 0 on success
+ */
+int cyw43_wifi_get_rssi(cyw43_t *self, int32_t *rssi);
+
+/*!
  * \brief Get the ssid for the access point
  *
  * For access point (AP) mode, this method can be used to get the SSID name of the wifi access point.

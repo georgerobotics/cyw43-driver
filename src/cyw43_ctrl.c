@@ -634,6 +634,14 @@ int cyw43_wifi_leave(cyw43_t *self, int itf) {
     return cyw43_ioctl(self, CYW43_IOCTL_SET_DISASSOC, 0, NULL, itf);
 }
 
+
+int cyw43_wifi_get_rssi(cyw43_t *self, int32_t *rssi) {
+    if (!rssi || !CYW43_STA_IS_ACTIVE(self)) {
+        return -CYW43_EPERM;
+    }
+    return cyw43_ioctl(self, CYW43_IOCTL_GET_RSSI, sizeof(*rssi), (uint8_t*)rssi, CYW43_ITF_STA);
+}
+
 /*******************************************************************************/
 // WiFi AP
 
