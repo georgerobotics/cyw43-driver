@@ -272,7 +272,7 @@ void cyw43_cb_ensure_awake(void *cb_data) {
     #endif
 }
 
-STATIC const char *cyw43_async_event_name_table[89] = {
+STATIC const char *const cyw43_async_event_name_table[89] = {
     //[0 ... 88] = NULL,
     [CYW43_EV_SET_SSID] = "SET_SSID",
     [CYW43_EV_JOIN] = "JOIN",
