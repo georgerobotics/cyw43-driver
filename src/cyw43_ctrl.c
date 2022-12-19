@@ -618,7 +618,7 @@ int cyw43_wifi_join(cyw43_t *self, size_t ssid_len, const uint8_t *ssid, size_t 
         // Will get EV_DEAUTH_IND if password is invalid
         self->wifi_join_state = WIFI_JOIN_STATE_ACTIVE;
 
-        if (auth_type == 0) {
+        if (auth_type == CYW43_AUTH_OPEN) {
             // For open security we don't need EV_PSK_SUP, so set that flag indicator now
             self->wifi_join_state |= WIFI_JOIN_STATE_KEYED;
         }

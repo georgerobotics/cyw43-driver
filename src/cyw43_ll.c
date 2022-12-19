@@ -2047,7 +2047,7 @@ int cyw43_ll_wifi_join(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *ssid
         // Auto auth type
         if (key == NULL || key_len == 0) {
             // No key given, assume this means open security
-            auth_type = 0;
+            auth_type = CYW43_AUTH_OPEN;
         } else {
             // See WICED_SECURITY_WPA2_MIXED_PSK
             auth_type = CYW43_AUTH_WPA2_MIXED_PSK;
@@ -2062,6 +2062,7 @@ int cyw43_ll_wifi_join(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *ssid
     } else if (auth_type == CYW43_AUTH_WPA_TKIP_PSK) {
         wpa_auth = CYW43_WPA_AUTH_PSK;
     } else {
+        // Unsupported auth_type (security) value.
         return -1;
     }
 
@@ -2080,7 +2081,7 @@ int cyw43_ll_wifi_join(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *ssid
     CYW43_VDEBUG("Setting sup_wpa_tmo %d\n", CYW_EAPOL_KEY_TIMEOUT);
     cyw43_write_iovar_u32_u32(self, "bsscfg:sup_wpa_tmo", 0, CYW_EAPOL_KEY_TIMEOUT, WWD_STA_INTERFACE);
 
-    if (auth_type != 0) {
+    if (auth_type != CYW43_AUTH_OPEN) {
         // wwd_wifi_set_passphrase
         cyw43_put_le16(buf, key_len);
         cyw43_put_le16(buf + 2, 1);
