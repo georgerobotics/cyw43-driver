@@ -2061,7 +2061,7 @@ int cyw43_ll_wifi_join(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *ssid
         wpa_auth = CYW43_WPA_AUTH_PSK;
     } else {
         // Unsupported auth_type (security) value.
-        return -1;
+        return -CYW43_EINVAL;
     }
 
     CYW43_VDEBUG("Setting wsec=0x%lx\n", auth_type & 0xff);
