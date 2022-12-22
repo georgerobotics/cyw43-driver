@@ -103,6 +103,7 @@ typedef struct _cyw43_t {
     bool pend_disassoc;
     bool pend_rejoin;
     bool pend_rejoin_wpa;
+    bool pend_restore_pm;
 
     // AP settings
     uint32_t ap_auth;
@@ -126,6 +127,9 @@ typedef struct _cyw43_t {
 
     // mac from otp (or from cyw43_hal_generate_laa_mac if not set)
     uint8_t mac[6];
+
+    // Power management setting, restored after connect
+    uint32_t saved_pm;
 } cyw43_t;
 
 extern cyw43_t cyw43_state;
