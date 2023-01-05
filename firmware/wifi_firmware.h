@@ -43,10 +43,10 @@
  */
 //!\{
 typedef struct cyw43_wifi_firmware_details {
-    size_t raw_size;            ///< size in bytes of the firmware binary
-    const uint8_t *raw_data;    ///< pointer to the firmware binary
-    size_t fw_size;             ///< Size of the firmware in bytes
-    size_t clm_size;            ///< Size of the clm in bytes
+    size_t raw_size;            ///< Size in bytes of the firmware data before extraction
+    const uint8_t *raw_data;    ///< Pointer to the firmware data before extraction
+    size_t fw_size;             ///< Size of the firmware in bytes after extraction
+    size_t clm_size;            ///< Size of the clm in bytes after extraction
     const uint8_t *fw_addr;     ///< Pointer to the firmware in the binary
     const uint8_t *clm_addr;    ///< Pointer to the clm in the binary
     size_t wifi_nvram_len;      ///< Size of nvram data
@@ -60,9 +60,9 @@ typedef struct cyw43_wifi_firmware_details {
 //!\{
 typedef struct cyw43_wifi_firmware_funcs {
     int (*start)(const cyw43_wifi_firmware_details_t *fw_details); ///< start firmware loading
-    const uint8_t* (*get_fw_source)(const uint8_t *addr, size_t sz_in, uint8_t *buffer, size_t buffer_len); ///< get fw data
-    const uint8_t* (*get_nvram_source)(const uint8_t *addr, size_t sz_in, uint8_t *buffer, size_t buffer_len); ///< get nvram data
-    int (*get_clm)(uint8_t *dst, const uint8_t *src, uint32_t len); ///< get clm data
+    const uint8_t* (*get_fw)(const uint8_t *addr, size_t sz_in, uint8_t *buffer, size_t buffer_len); ///< get block of fw data
+    const uint8_t* (*get_nvram)(const uint8_t *addr, size_t sz_in, uint8_t *buffer, size_t buffer_len); ///< get block of nvram data
+    int (*copy_clm)(uint8_t *dst, const uint8_t *src, uint32_t len); ///< get clm data
     void (*end)(void); ///< end firmware loading
 } cyw43_wifi_firmware_funcs_t;
 //!\}
@@ -78,7 +78,7 @@ typedef struct cyw43_wifi_firmware_funcs {
  * \param buffer_len Length of temporary buffer in bytes
  * \return Requested firmware data
  */
-const uint8_t *wifi_firmware_get_source_storage(const uint8_t *addr, size_t sz_in, uint8_t *buffer, size_t buffer_len);
+const uint8_t *wifi_firmware_get_storage(const uint8_t *addr, size_t sz_in, uint8_t *buffer, size_t buffer_len);
 
 /*!
  * \brief get firmware data embedded in the elf file binary
@@ -91,19 +91,19 @@ const uint8_t *wifi_firmware_get_source_storage(const uint8_t *addr, size_t sz_i
  * \param buffer_len Length of temporary buffer in bytes
  * \return Requested firmware data
  */
-const uint8_t *wifi_firmware_get_source_embedded(const uint8_t *addr, size_t sz_in, uint8_t *buffer, size_t buffer_len);
+const uint8_t *wifi_firmware_get_embedded(const uint8_t *addr, size_t sz_in, uint8_t *buffer, size_t buffer_len);
 
 /*!
- * \brief get clm data embedded in the elf file binary
+ * \brief get a copy of firmware data embedded in the elf file binary
  *
- * Loads clm data from the elf file binary and returns a pointer to it
+ * Loads firmware and copies it to the supplied buffer
  *
- * \param dst Destination of clm data
- * \param src Source address of the clm data
- * \param len Amount of data required in bytes
+ * \param dst Required destination of firmare data
+ * \param src Source address of the firmware data
+ * \param len Amount of data to be copied in bytes
  * \return >=0 on success or <0 on error
  */
-int wifi_firmware_get_clm_embedded(uint8_t *dst, const uint8_t *src, uint32_t len);
+int wifi_firmware_copy_embedded(uint8_t *dst, const uint8_t *src, uint32_t len);
 
 #if CYW43_DECOMPRESS_FIRMWARE
 /*!
@@ -128,19 +128,19 @@ int wifi_firmware_start_decompress(const cyw43_wifi_firmware_details_t* fw_detai
  * \param buffer_len Length of temporary buffer in bytes
  * \return Requested firmware data
  */
-const uint8_t *wifi_firmware_get_source_decompress(const uint8_t *addr, size_t sz_in, uint8_t *buffer, size_t buffer_len);
+const uint8_t *wifi_firmware_get_compressed(const uint8_t *addr, size_t sz_in, uint8_t *buffer, size_t buffer_len);
 
 /*!
- * \brief get and decompress clm data embedded in the elf file binary
+ * \brief Decompress the clm data embedded in the elf file binary and copy it to the supplied buffer
  *
- * Loads clm data from flash, decompresses it  and returns a pointer to it
+ * Loads clm data from flash, decompresses it and copies it to the supplied buffer
  *
  * \param dst Destination of clm data
  * \param src Source address of the clm data
  * \param len Amount of data required in bytes
  * \return >=0 on success or <0 on error
  */
-int wifi_firmware_get_clm_decompress(uint8_t *dst, const uint8_t *src, uint32_t len);
+int wifi_firmware_copy_compressed(uint8_t *dst, const uint8_t *src, uint32_t len);
 #endif
 
 #endif

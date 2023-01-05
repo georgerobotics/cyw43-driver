@@ -86,15 +86,15 @@ static inline const cyw43_wifi_firmware_funcs_t *wifi_fw_funcs(void) {
     static const cyw43_wifi_firmware_funcs_t funcs = {
         #if CYW43_DECOMPRESS_FIRMWARE
         .start = wifi_firmware_start_decompress,
-        .get_fw_source = wifi_firmware_get_source_decompress,
-        .get_nvram_source = wifi_firmware_get_source_embedded, // not compressed
-        .get_clm = wifi_firmware_get_clm_decompress,
+        .get_fw = wifi_firmware_get_compressed,
+        .get_nvram = wifi_firmware_get_embedded, // not compressed
+        .copy_clm = wifi_firmware_copy_compressed,
         .end = cyw43_decompress_firmware_end,
         #else
         .start = NULL,
-        .get_fw_source = wifi_firmware_get_source_embedded,
-        .get_nvram_source = wifi_firmware_get_source_embedded,
-        .get_clm = wifi_firmware_get_clm_embedded,
+        .get_fw = wifi_firmware_get_embedded,
+        .get_nvram = wifi_firmware_get_embedded,
+        .copy_clm = wifi_firmware_copy_embedded,
         .end = NULL,
         #endif
     };
