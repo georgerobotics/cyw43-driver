@@ -642,6 +642,13 @@ int cyw43_wifi_get_rssi(cyw43_t *self, int32_t *rssi) {
     return cyw43_ioctl(self, CYW43_IOCTL_GET_RSSI, sizeof(*rssi), (uint8_t*)rssi, CYW43_ITF_STA);
 }
 
+int cyw43_wifi_get_bssid(cyw43_t *self, uint8_t bssid[6]) {
+    CYW43_THREAD_ENTER;
+    int ret = cyw43_ll_wifi_get_bssid(&self->cyw43_ll, bssid);
+    CYW43_THREAD_EXIT;
+    return ret;
+}
+
 /*******************************************************************************/
 // WiFi AP
 

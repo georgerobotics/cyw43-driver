@@ -349,6 +349,15 @@ int cyw43_wifi_leave(cyw43_t *self, int itf);
 int cyw43_wifi_get_rssi(cyw43_t *self, int32_t *rssi);
 
 /*!
+ * \brief Get the BSSID of the connected wifi network
+ *
+ * \param self the driver state object. This should always be \c &cyw43_state
+ * \param bssid a buffer to receive the BSSID
+ * \return 0 on success
+ */
+int cyw43_wifi_get_bssid(cyw43_t *self, uint8_t bssid[6]);
+
+/*!
  * \brief Get the ssid for the access point
  *
  * For access point (AP) mode, this method can be used to get the SSID name of the wifi access point.

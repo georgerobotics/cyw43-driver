@@ -266,6 +266,7 @@ int cyw43_ll_wifi_scan(cyw43_ll_t *self, cyw43_wifi_scan_options_t *opts);
 int cyw43_ll_wifi_join(cyw43_ll_t *self, size_t ssid_len, const uint8_t *ssid, size_t key_len, const uint8_t *key, uint32_t auth_type, const uint8_t *bssid, uint32_t channel);
 void cyw43_ll_wifi_set_wpa_auth(cyw43_ll_t *self);
 void cyw43_ll_wifi_rejoin(cyw43_ll_t *self);
+int cyw43_ll_wifi_get_bssid(cyw43_ll_t *self_in, uint8_t *bssid);
 
 int cyw43_ll_wifi_ap_init(cyw43_ll_t *self, size_t ssid_len, const uint8_t *ssid, uint32_t auth, size_t key_len, const uint8_t *key, uint32_t channel);
 int cyw43_ll_wifi_ap_set_up(cyw43_ll_t *self, bool up);

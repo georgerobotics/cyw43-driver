@@ -185,6 +185,7 @@ static void cyw43_xxd(size_t len, const uint8_t *buf) {
 #define WLC_UP (2)
 #define WLC_SET_INFRA (20)
 #define WLC_SET_AUTH (22)
+#define WLC_GET_BSSID (23)
 #define WLC_GET_SSID (25)
 #define WLC_SET_SSID (26)
 #define WLC_SET_CHANNEL (30)
@@ -728,6 +729,7 @@ static const char *ioctl_cmd_name(int id) {
         CASE_RETURN_STRING(WLC_UP)
         CASE_RETURN_STRING(WLC_SET_INFRA)
         CASE_RETURN_STRING(WLC_SET_AUTH)
+        CASE_RETURN_STRING(WLC_GET_BSSID)
         CASE_RETURN_STRING(WLC_GET_SSID)
         CASE_RETURN_STRING(WLC_SET_SSID)
         CASE_RETURN_STRING(WLC_SET_CHANNEL)
@@ -2151,6 +2153,11 @@ void cyw43_ll_wifi_set_wpa_auth(cyw43_ll_t *self_in) {
 void cyw43_ll_wifi_rejoin(cyw43_ll_t *self_in) {
     cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
     cyw43_do_ioctl(self, SDPCM_SET, WLC_SET_SSID, 36, self->last_ssid_joined, WWD_STA_INTERFACE);
+}
+
+int cyw43_ll_wifi_get_bssid(cyw43_ll_t *self_in, uint8_t *bssid) {
+    cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
+    return cyw43_do_ioctl(self, SDPCM_GET, WLC_GET_BSSID, 6, bssid, WWD_STA_INTERFACE);
 }
 
 /*******************************************************************************/
