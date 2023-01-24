@@ -181,6 +181,11 @@
 #define CYW43_PM2_POWERSAVE_MODE          (2) ///< Powersave mode on specified interface with High throughput
 
 /*!
+ * \brief To indicate no specific channel when calling cyw43_ll_wifi_join with bssid specified
+ */
+#define CYW43_CHANNEL_NONE (0xffffffff) ///< No Channel specified (use the AP's channel)
+
+/*!
  * \brief Network interface types
  * \anchor CYW43_ITF_
  */
