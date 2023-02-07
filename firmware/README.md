@@ -15,14 +15,18 @@ For example:
 This binary is then converted to a header file, e.g. xxd -i 43439A0-7.95.49.00.combined
 The macros `CYW43_WIFI_FW_LEN`, `CYW43_CLM_LEN` specify the unpadded size of the original firmware binaries in bytes.
 
-The BT firmware binary is stored as a static array in cyw43_btfw_43439.h and has the following format.
+The Bluetooth firmware binary for the 43439 (eg found on the Raspberry Pi Pico W)
+is available as a static array in `cyw43_btfw_43439.h` and has the following format:
 
-1 byte: number of characters in version string including null terminator
-n bytes: zero terminated version string
-1 byte: number of records following
+    1 byte: number of characters in version string including null terminator
+    n bytes: zero terminated version string
+    1 byte: number of records following
 
-Each record has the following format...
-1 byte: data count
-2 bytes: address
-1 byte: address type
-n bytes: data
+    Each record then has the following format:
+        1 byte: data count
+        2 bytes: address
+        1 byte: address type
+        n bytes: data
+
+The Bluetooth firmware binary for the 4343A1 (eg found in the Murata 1DX) is
+available as a static array in `cyw43_btfw_4343A1.h`.
