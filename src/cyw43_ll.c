@@ -69,14 +69,8 @@ extern bool enable_spi_packet_dumping;
 
 #define CYW43_RAM_SIZE (512 * 1024)
 
-#if CYW43_USE_SPI
+// Include the file containing the WiFi+CLM firmware blob as a C array.
 #include CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE
-#else
-#define CYW43_WIFI_FW_LEN (383110) // 7.45.98.50
-extern const char fw_4343WA1_7_45_98_50_start[426094];
-#define CYW43_CLM_LEN (7222)
-const uintptr_t fw_data = (uintptr_t)&fw_4343WA1_7_45_98_50_start[0];
-#endif
 
 #define CYW43_CLM_ADDR (fw_data + ALIGN_UINT(CYW43_WIFI_FW_LEN, 512))
 #define VERIFY_FIRMWARE_DOWNLOAD (0)
