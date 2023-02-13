@@ -212,6 +212,7 @@ int cyw43_wifi_pm(cyw43_t *self, uint32_t pm);
  * \see cyw43_pm_value for an explanation of these values
  * This should be called after cyw43_wifi_set_up
  *
+ * \param self the driver state object. This should always be \c &cyw43_state
  * \param pm Power management value
  * \return 0 on success
  */
