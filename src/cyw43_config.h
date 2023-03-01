@@ -72,6 +72,12 @@
 #define CYW43_WIFI_NVRAM_INCLUDE_FILE "firmware/wifi_nvram_43439.h"
 #endif
 
+// This should be defined by the port if needed, to override the default
+// alignment, or add more attributes, for the firmware and NVRAM resources.
+#ifndef CYW43_RESOURCE_ATTRIBUTE
+#define CYW43_RESOURCE_ATTRIBUTE __attribute__((aligned(4)))
+#endif
+
 // Timing and timeout configuration.
 
 #ifndef CYW43_IOCTL_TIMEOUT_US

@@ -17,7 +17,7 @@ extern "C" {
  * Generated from cyw943439wlpth_rev1_0.txt
  */
 
-static const uint8_t wifi_nvram_4343[] __attribute__((aligned(4))) =
+static const uint8_t wifi_nvram_4343[] CYW43_RESOURCE_ATTRIBUTE =
         "NVRAMRev=$Rev$"                                                     "\x00"
         "manfid=0x2d0"                                                       "\x00"
         "prodid=0x0727"                                                      "\x00"

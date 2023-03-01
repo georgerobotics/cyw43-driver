@@ -1,4 +1,4 @@
-static const uint8_t wifi_nvram_4343[] __attribute__((aligned(4))) =
+static const uint8_t wifi_nvram_4343[] CYW43_RESOURCE_ATTRIBUTE =
     // Type1DX_Final_nvram2.txt
     // 2.4 GHz, 20 MHz BW mode
     "manfid=0x2d0\x00"
