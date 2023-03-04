@@ -397,7 +397,7 @@ static inline uint32_t cyw43_wifi_ap_get_auth(cyw43_t *self) {
  * \param channel Wifi channel to use for the wifi access point
  */
 static inline void cyw43_wifi_ap_set_channel(cyw43_t *self, uint32_t channel) {
-    self->ap_channel = (uint8_t) channel;
+    self->ap_channel = (uint8_t)channel;
 }
 
 /*!
@@ -410,7 +410,7 @@ static inline void cyw43_wifi_ap_set_channel(cyw43_t *self, uint32_t channel) {
  * \param buf A buffer containing the AP SSID name
  */
 static inline void cyw43_wifi_ap_set_ssid(cyw43_t *self, size_t len, const uint8_t *buf) {
-    self->ap_ssid_len = (uint8_t) MIN(len, sizeof(self->ap_ssid));
+    self->ap_ssid_len = (uint8_t)MIN(len, sizeof(self->ap_ssid));
     memcpy(self->ap_ssid, buf, self->ap_ssid_len);
 }
 
@@ -424,7 +424,7 @@ static inline void cyw43_wifi_ap_set_ssid(cyw43_t *self, size_t len, const uint8
  * \param buf A buffer containing the AP password
  */
 static inline void cyw43_wifi_ap_set_password(cyw43_t *self, size_t len, const uint8_t *buf) {
-    self->ap_key_len = (uint8_t) MIN(len, sizeof(self->ap_key));
+    self->ap_key_len = (uint8_t)MIN(len, sizeof(self->ap_key));
     memcpy(self->ap_key, buf, self->ap_key_len);
 }
 
@@ -602,11 +602,11 @@ int cyw43_gpio_get(cyw43_t *self, int gpio, bool *val);
  * \param li_assoc Wake interval sent to the access point
  */
 static inline uint32_t cyw43_pm_value(uint8_t pm_mode, uint16_t pm2_sleep_ret_ms, uint8_t li_beacon_period, uint8_t li_dtim_period, uint8_t li_assoc) {
-    return li_assoc << 20 | // listen interval sent to ap
-        li_dtim_period << 16 |
-        li_beacon_period << 12 |
-        (pm2_sleep_ret_ms / 10) << 4 | // cyw43_ll_wifi_pm multiplies this by 10
-        pm_mode; // CYW43_PM2_POWERSAVE_MODE etc
+    return li_assoc << 20 // listen interval sent to ap
+           | li_dtim_period << 16
+           | li_beacon_period << 12
+           | (pm2_sleep_ret_ms / 10) << 4 // cyw43_ll_wifi_pm multiplies this by 10
+           | pm_mode; // CYW43_PM2_POWERSAVE_MODE etc
 }
 
 /*!

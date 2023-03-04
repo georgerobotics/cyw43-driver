@@ -152,9 +152,9 @@ void cyw43_deinit(cyw43_t *self) {
 STATIC int cyw43_ensure_up(cyw43_t *self) {
     CYW43_THREAD_LOCK_CHECK;
 
-#ifndef NDEBUG
+    #ifndef NDEBUG
     assert(cyw43_is_initialized(self)); // cyw43_init has not been called
-#endif
+    #endif
     if (cyw43_poll != NULL) {
         cyw43_ll_bus_sleep(&self->cyw43_ll, false);
         return 0;
@@ -350,15 +350,15 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
         cyw43_cb_tcpip_set_link_down(self, CYW43_ITF_STA);
         self->wifi_join_state = 0x0000;
 
-    /*
+    #if 0
     } else if (ev->event_type == CYW43_EV_DISASSOC_IND) {
         if (ev->interface == CYW43_ITF_AP) {
             // Station disassociated with our AP, let DHCP server know so it can free the IP address
             dhcp_server_disassoc(&self->dhcp_server, buf + 24);
         }
-    */
+    #endif
 
-    // WiFi join events
+        // WiFi join events
     } else if (ev->event_type == CYW43_EV_PRUNE) {
         if (ev->status == 0 && ev->reason == 8) {
             // RSN mismatch, retry join with WPA auth
@@ -658,7 +658,7 @@ int cyw43_wifi_get_rssi(cyw43_t *self, int32_t *rssi) {
     if (!rssi || !CYW43_STA_IS_ACTIVE(self)) {
         return -CYW43_EPERM;
     }
-    return cyw43_ioctl(self, CYW43_IOCTL_GET_RSSI, sizeof(*rssi), (uint8_t*)rssi, CYW43_ITF_STA);
+    return cyw43_ioctl(self, CYW43_IOCTL_GET_RSSI, sizeof(*rssi), (uint8_t *)rssi, CYW43_ITF_STA);
 }
 
 int cyw43_wifi_get_bssid(cyw43_t *self, uint8_t bssid[6]) {

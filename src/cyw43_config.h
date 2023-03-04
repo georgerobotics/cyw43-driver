@@ -166,4 +166,3 @@
 #ifndef CYW43_DEFAULT_IP_DNS
 #define CYW43_DEFAULT_IP_DNS LWIP_MAKEU32(8, 8, 8, 8)
 #endif
-

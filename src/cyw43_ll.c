@@ -350,7 +350,7 @@ static void cyw43_write_backplane(cyw43_int_t *self, uint32_t addr, size_t size,
 #if CYW43_ENABLE_BLUETOOTH
 static int cyw43_write_backplane_mem(cyw43_int_t *self, uint32_t addr, uint32_t len, const uint8_t *buf) {
     assert(len <= CYW43_BUS_MAX_BLOCK_SIZE);
-    while(len > 0) {
+    while (len > 0) {
         const uint32_t backplane_addr_start = addr & BACKPLANE_ADDR_MASK;
         const uint32_t backplane_addr_end = MIN(backplane_addr_start + len, BACKPLANE_ADDR_MASK + 1);
         const uint32_t backplane_len = backplane_addr_end - backplane_addr_start;
@@ -885,11 +885,11 @@ static int sdpcm_process_rx_packet(cyw43_int_t *self, uint8_t *buf, size_t *out_
             }
             // TODO extract and check/use the interface number from ioctl_header->flags
             // at this point the packet matches the last request sent and can be processed
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
+            #pragma GCC diagnostic push
+            #pragma GCC diagnostic ignored "-Wcast-qual"
             uint8_t *payload = (uint8_t *)ioctl_header + IOCTL_HEADER_LEN;
             size_t len = header->size - ((const uint8_t *)payload - (const uint8_t *)header);
-#pragma GCC diagnostic pop
+            #pragma GCC diagnostic pop
             *out_len = len;
             *out_buf = payload;
             CYW43_VDEBUG("got ioctl response id=0x%x len=%d\n", id, len);
@@ -906,11 +906,11 @@ static int sdpcm_process_rx_packet(cyw43_int_t *self, uint8_t *buf, size_t *out_
             // get the interface number
             int itf = bdc_header->flags2;
             // get payload (skip variable length header)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
+            #pragma GCC diagnostic push
+            #pragma GCC diagnostic ignored "-Wcast-qual"
             uint8_t *payload = (uint8_t *)bdc_header + BDC_HEADER_LEN + (bdc_header->data_offset << 2);
             size_t len = header->size - ((const uint8_t *)payload - (const uint8_t *)header);
-#pragma GCC diagnostic pop
+            #pragma GCC diagnostic pop
 
             // at this point we have just the payload, ready to process
             *out_len = len | (uint32_t)itf << 31;
@@ -926,11 +926,11 @@ static int sdpcm_process_rx_packet(cyw43_int_t *self, uint8_t *buf, size_t *out_
             // get bdc header
             const struct sdpcm_bdc_header_t *bdc_header = (const void *)&buf[header->header_length];
             // get payload (skip variable length header)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
+            #pragma GCC diagnostic push
+            #pragma GCC diagnostic ignored "-Wcast-qual"
             uint8_t *payload = (uint8_t *)bdc_header + BDC_HEADER_LEN + (bdc_header->data_offset << 2);
             size_t len = header->size - ((const uint8_t *)payload - (const uint8_t *)header);
-#pragma GCC diagnostic pop
+            #pragma GCC diagnostic pop
 
             // payload is actually an ethernet packet with type 0x886c
             if (!(payload[12] == 0x88 && payload[13] == 0x6c)) {
@@ -1047,9 +1047,9 @@ static int cyw43_ll_sdpcm_poll_device(cyw43_int_t *self, size_t *len, uint8_t **
             if (spi_int & BUS_OVERFLOW_UNDERFLOW) {
                 CYW43_WARN("Bus error condition detected 0x%x\n", spi_int);
                 CYW43_STAT_INC(BUS_ERROR);
-#if CYW43_USE_STATS
+                #if CYW43_USE_STATS
                 assert(CYW43_STAT_GET(BUS_ERROR) < 100); // stop eventually
-#endif
+                #endif
             }
         }
 
@@ -1148,10 +1148,10 @@ static int cyw43_ll_sdpcm_poll_device(cyw43_int_t *self, size_t *len, uint8_t **
     if (ret != 0) {
         return ret;
     }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-align"
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wcast-align"
     uint16_t *hdr = (__uint16_t *)self->spid_buf;
-#pragma GCC diagnostic pop
+    #pragma GCC diagnostic pop
     if (hdr[0] == 0 && hdr[1] == 0) {
         // no packets
         CYW43_DEBUG("No packet zero size header");
@@ -1512,7 +1512,7 @@ int cyw43_ll_bus_init(cyw43_ll_t *self_in, const uint8_t *mac) {
 
         // Enable a selection of interrupts
         uint16_t cyw43_interrupts = F2_F3_FIFO_RD_UNDERFLOW | F2_F3_FIFO_WR_OVERFLOW |
-                COMMAND_ERROR | DATA_ERROR | F2_PACKET_AVAILABLE | F1_OVERFLOW;
+            COMMAND_ERROR | DATA_ERROR | F2_PACKET_AVAILABLE | F1_OVERFLOW;
         #if CYW43_ENABLE_BLUETOOTH
         cyw43_interrupts |= F1_INTR;
         #endif
@@ -1847,19 +1847,19 @@ static uint32_t cyw43_read_iovar_u32(cyw43_int_t *self, const char *var, uint32_
 #if 0
 #define WLC_SET_MONITOR (108)
 int cyw43_set_monitor_mode(cyw43_ll_t *self, int value) {
-    CYW_THREAD_ENTER
+    CYW_THREAD_ENTER;
     int ret = cyw43_ensure_up(self);
     if (ret) {
-        CYW_THREAD_EXIT
+        CYW_THREAD_EXIT;
         return ret;
     }
 
-    CYW_ENTER
+    CYW_ENTER;
     self->is_monitor_mode = value;
     cyw43_write_iovar_u32(self, "allmulti", value, WWD_STA_INTERFACE);
     cyw43_set_ioctl_u32(self, WLC_SET_MONITOR, value, WWD_STA_INTERFACE);
-    CYW_EXIT
-    CYW_THREAD_EXIT
+    CYW_EXIT;
+    CYW_THREAD_EXIT;
 
     return 0;
 }
@@ -1977,7 +1977,7 @@ int cyw43_ll_wifi_update_multicast_filter(cyw43_ll_t *self_in, uint8_t *addr, bo
                 // remove this address
                 if (i < n - 1) {
                     // replace with the end of the list
-                    memcpy(buf + i * 6, buf + (n-1) * 6, 6);
+                    memcpy(buf + i * 6, buf + (n - 1) * 6, 6);
                 }
                 --n;
             }
