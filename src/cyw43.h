@@ -161,7 +161,7 @@ void cyw43_deinit(cyw43_t *self);
  *
  * \param self the driver state object. This should always be \c &cyw43_state
  * \param cmd the command to send
- * \param len the amount of data to send with the commannd
+ * \param len the amount of data to send with the command
  * \param buf a buffer containing the data to send
  * \param iface the interface to use, either CYW43_ITF_STA or CYW43_ITF_AP
  * \return 0 on success
@@ -316,7 +316,7 @@ static inline bool cyw43_wifi_scan_active(cyw43_t *self) {
  * After success is returned, periodically call \ref cyw43_wifi_link_status or \ref cyw43_tcpip_link_status,
  * to query the status of the link. It can take a many seconds to connect to fully join a network.
  *
- * \note Call \ref cyw43_wifi_leave to dissassociate from a wifi network.
+ * \note Call \ref cyw43_wifi_leave to disassociate from a wifi network.
  *
  * \param self the driver state object. This should always be \c &cyw43_state
  * \param ssid_len the length of the wifi network name
@@ -331,9 +331,9 @@ static inline bool cyw43_wifi_scan_active(cyw43_t *self) {
 int cyw43_wifi_join(cyw43_t *self, size_t ssid_len, const uint8_t *ssid, size_t key_len, const uint8_t *key, uint32_t auth_type, const uint8_t *bssid, uint32_t channel);
 
 /*!
- * \brief Dissassociate from a wifi network
+ * \brief Disassociate from a wifi network
  *
- * This method dissassociates from a wifi network.
+ * This method disassociates from a wifi network.
  *
  * \param self the driver state object. This should always be \c &cyw43_state
  * \param itf The interface to disconnect, either CYW43_ITF_STA or CYW43_ITF_AP
@@ -615,7 +615,7 @@ static inline uint32_t cyw43_pm_value(uint8_t pm_mode, uint16_t pm2_sleep_ret_ms
 #define CYW43_DEFAULT_PM cyw43_pm_value(CYW43_PM2_POWERSAVE_MODE, 200, 1, 1, 10)
 
 /*!
- * \brief Aggressive power management mode for optimial power usage at the cost of performance
+ * \brief Aggressive power management mode for optimal power usage at the cost of performance
  */
 #define CYW43_AGGRESSIVE_PM cyw43_pm_value(CYW43_PM2_POWERSAVE_MODE, 2000, 1, 1, 10)
 

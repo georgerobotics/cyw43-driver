@@ -687,7 +687,7 @@ static int cyw43_sdpcm_send_common(cyw43_int_t *self, uint32_t kind, size_t len,
             if (ret == ASYNCEVENT_HEADER) {
                 cyw43_cb_process_async_event(self, cyw43_ll_parse_async_event(res_len, res_buf));
             } else if (ret == DATA_HEADER) {
-                // Don't proccess it due to possible reentrancy issues (eg sending another ETH as part of the reception)
+                // Don't process it due to possible reentrancy issues (eg sending another ETH as part of the reception)
                 // printf("STALL: not processing ethernet packet\n");
                 // cyw43_tcpip_process_ethernet(self, res_len, res_buf);
             } else if (ret >= 0) {

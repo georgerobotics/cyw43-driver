@@ -175,7 +175,7 @@
 //!\}
 
 /*!
- * \brief Power save mode paramter passed to cyw43_ll_wifi_pm
+ * \brief Power save mode parameter passed to cyw43_ll_wifi_pm
  */
 #define CYW43_NO_POWERSAVE_MODE           (0) ///< No Powersave mode
 #define CYW43_PM1_POWERSAVE_MODE          (1) ///< Powersave mode on specified interface without regard for throughput reduction
