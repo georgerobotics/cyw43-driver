@@ -701,7 +701,7 @@ static int cyw43_sdpcm_send_common(cyw43_int_t *self, uint32_t kind, size_t len,
                 CYW43_WARN("STALL(%u;%u-%u): timeout\n", self->wlan_flow_control, self->wwd_sdpcm_packet_transmit_sequence_number, self->wwd_sdpcm_last_bus_data_credit);
                 return CYW43_FAIL_FAST_CHECK(-CYW43_ETIMEDOUT);
             }
-            CYW43_SDPCM_SEND_COMMON_WAIT
+            CYW43_SDPCM_SEND_COMMON_WAIT;
         }
     }
 
@@ -1215,7 +1215,7 @@ static int cyw43_do_ioctl(cyw43_int_t *self, uint32_t kind, uint32_t cmd, size_t
         } else if (ret >= 0) {
             CYW43_WARN("do_ioctl: got unexpected packet %d\n", ret);
         }
-        CYW43_DO_IOCTL_WAIT
+        CYW43_DO_IOCTL_WAIT;
     }
     CYW43_WARN("do_ioctl(%u, %u, %u): timeout\n", (unsigned int)kind, (unsigned int)cmd, (unsigned int)len);
     return CYW43_FAIL_FAST_CHECK(-CYW43_ETIMEDOUT);
