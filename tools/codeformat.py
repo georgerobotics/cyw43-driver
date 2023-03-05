@@ -36,6 +36,7 @@ import subprocess
 PATHS = [
     # C
     "src/**/*.[ch]",
+    "tests/**/*.[ch]",
     # Python
     "tools/**/*.py",
 ]
