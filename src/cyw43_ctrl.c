@@ -31,7 +31,7 @@
  * options please email contact@georgerobotics.com.au.
  */
 
-#include <stdio.h>
+#include <assert.h>
 #include <string.h>
 
 #include "cyw43.h"

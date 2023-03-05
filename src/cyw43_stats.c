@@ -31,9 +31,9 @@
  * options please email contact@georgerobotics.com.au.
  */
 
-#include <stdio.h>
 #include <stdbool.h>
 #include <inttypes.h>
+
 #include "cyw43_config.h"
 #include "cyw43_stats.h"
 

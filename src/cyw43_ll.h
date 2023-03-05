@@ -35,6 +35,7 @@
 #define CYW43_INCLUDED_CYW43_LL_H
 
 #include <stdbool.h>
+#include <stdint.h>
 #include "cyw43_config.h"
 
 // External interface
