@@ -387,7 +387,7 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
     if (from_storage) {
         // reused the spid_buf to copy the data (must be larger than 512 storage block size)
         block_size = sizeof(self->spid_buf);
-        CYW43_DEBUG("data comes from external storage via buffer of size %u\n", (uint)block_size);
+        CYW43_DEBUG("data comes from external storage via buffer of size %u\n", (unsigned int)block_size);
     }
 
     if (addr == 0) {
@@ -461,7 +461,7 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
     #if VERIFY_FIRMWARE_DOWNLOAD
     uint32_t t_end = cyw43_hal_ticks_us();
     uint32_t dt = t_end - t_start;
-    CYW43_VDEBUG("done dnload; dt = %u us; speed = %u kbytes/sec\n", (uint)dt, (uint)(len * 1000 / dt));
+    CYW43_VDEBUG("done dnload; dt = %u us; speed = %u kbytes/sec\n", (unsigned int)dt, (unsigned int)(len * 1000 / dt));
     #endif
 
     #if VERIFY_FIRMWARE_DOWNLOAD
@@ -486,7 +486,7 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
             src = (const uint8_t *)source + offset;
         }
         if (memcmp(buf, src, sz) != 0) {
-            CYW43_WARN("fail verify at address 0x%08x:\n", (uint)dest_addr);
+            CYW43_WARN("fail verify at address 0x%08x:\n", (unsigned int)dest_addr);
             cyw43_xxd(sz, src);
             cyw43_xxd(sz, buf);
             return CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
@@ -494,7 +494,7 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
     }
     t_end = cyw43_hal_ticks_us();
     dt = t_end - t_start;
-    CYW43_DEBUG("done verify; dt = %u us; speed = %u kbytes/sec\n", (uint)dt, (uint)(len * 1000 / dt));
+    CYW43_DEBUG("done verify; dt = %u us; speed = %u kbytes/sec\n", (unsigned int)dt, (unsigned int)(len * 1000 / dt));
     #endif
 
     return 0;
@@ -666,7 +666,7 @@ static int cyw43_sdpcm_send_common(cyw43_int_t *self, uint32_t kind, size_t len,
         for (;;) {
             uint32_t cur_us = cyw43_hal_ticks_us();
             if (cur_us - last_poke >= 100000) {
-                CYW43_DEBUG("STALL(%u;%u-%u): do poke at %u us\n", self->wlan_flow_control, self->wwd_sdpcm_packet_transmit_sequence_number, self->wwd_sdpcm_last_bus_data_credit, (uint)(cur_us - start_us));
+                CYW43_DEBUG("STALL(%u;%u-%u): do poke at %u us\n", self->wlan_flow_control, self->wwd_sdpcm_packet_transmit_sequence_number, self->wwd_sdpcm_last_bus_data_credit, (unsigned int)(cur_us - start_us));
                 last_poke = cur_us;
                 #if !CYW43_USE_SPI
                 cyw43_write_backplane(self, SDIO_TO_SB_MAILBOX, 4, 1 << 3);
@@ -694,7 +694,7 @@ static int cyw43_sdpcm_send_common(cyw43_int_t *self, uint32_t kind, size_t len,
                 // printf("cyw43_do_ioctl: got unexpected packet %d\n", ret);
             }
             if (!self->wlan_flow_control && self->wwd_sdpcm_last_bus_data_credit != self->wwd_sdpcm_packet_transmit_sequence_number) {
-                // CYW43_WARN("STALL(%u;%u-%u): done in %u us\n", self->wlan_flow_control, self->wwd_sdpcm_packet_transmit_sequence_number, self->wwd_sdpcm_last_bus_data_credit, (uint)(cur_us - start_us));
+                // CYW43_WARN("STALL(%u;%u-%u): done in %u us\n", self->wlan_flow_control, self->wwd_sdpcm_packet_transmit_sequence_number, self->wwd_sdpcm_last_bus_data_credit, (unsigned int)(cur_us - start_us));
                 break;
             }
             if (cur_us - start_us > 1000000) {
@@ -1217,7 +1217,7 @@ static int cyw43_do_ioctl(cyw43_int_t *self, uint32_t kind, uint32_t cmd, size_t
         }
         CYW43_DO_IOCTL_WAIT
     }
-    CYW43_WARN("do_ioctl(%lu, %lu, %u): timeout\n", kind, cmd, len);
+    CYW43_WARN("do_ioctl(%u, %u, %u): timeout\n", (unsigned int)kind, (unsigned int)cmd, (unsigned int)len);
     return CYW43_FAIL_FAST_CHECK(-CYW43_ETIMEDOUT);
 }
 
