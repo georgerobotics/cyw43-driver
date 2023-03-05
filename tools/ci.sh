@@ -30,3 +30,20 @@ function ci_code_spell_setup {
 function ci_code_spell_run {
     codespell firmware/ src/
 }
+
+########################################################################################
+# code spelling
+
+function ci_tests_setup {
+    sudo dpkg --add-architecture i386
+    sudo apt-get update
+    sudo apt-get install gcc-multilib
+}
+
+function ci_tests_build {
+    make $MAKEOPTS -C tests/sdio
+}
+
+function ci_tests_run {
+    make $MAKEOPTS -C tests/sdio test
+}

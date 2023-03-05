@@ -1,0 +1,19 @@
+name: Run tests
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install packages
+      run: source tools/ci.sh && ci_tests_setup
+    - name: Build tests
+      run: source tools/ci.sh && ci_tests_build
+    - name: Run tests
+      run: source tools/ci.sh && ci_tests_run
