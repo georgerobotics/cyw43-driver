@@ -51,8 +51,7 @@
 #include "cyw43_spi.h"
 #include "cyw43_debug_pins.h"
 #else
-int sdio_transfer(uint32_t cmd, uint32_t arg, uint32_t *resp);
-void sdio_enable_high_speed_4bit(void);
+#include "cyw43_sdio.h"
 #endif
 
 #define CYW43_FLASH_BLOCK_SIZE (512)
@@ -1530,18 +1529,18 @@ int cyw43_ll_bus_init(cyw43_ll_t *self_in, const uint8_t *mac) {
     #else
 
     // enumerate SDIO bus
-    sdio_transfer(0, 0, NULL); // ignore any errors
-    sdio_transfer(5, 0, NULL); // ignore any errors
+    cyw43_sdio_transfer(0, 0, NULL); // ignore any errors
+    cyw43_sdio_transfer(5, 0, NULL); // ignore any errors
 
     // get RCA
     uint32_t rca;
-    if (sdio_transfer(3, 0, &rca) != 0) {
+    if (cyw43_sdio_transfer(3, 0, &rca) != 0) {
         CYW43_WARN("SDIO enumerate error");
         return CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
     }
 
     // select the card with RCA
-    if (sdio_transfer(7, rca, NULL) != 0) {
+    if (cyw43_sdio_transfer(7, rca, NULL) != 0) {
         CYW43_WARN("SDIO select error");
         return CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
     }
@@ -1590,7 +1589,7 @@ backplane_up:
     cyw43_write_reg_u8(self, BUS_FUNCTION, SDIOD_CCCR_SPEED_CONTROL, reg | 2);
 
     // enable high speed, 4-bit bus mode for local SDIO controller
-    sdio_enable_high_speed_4bit();
+    cyw43_sdio_enable_high_speed_4bit();
 
     // wait for backplane to be ready
     for (int i = 0; i < 10; ++i) {

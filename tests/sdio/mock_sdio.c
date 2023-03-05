@@ -29,9 +29,15 @@ void cyw43_sdio_set_irq(bool enable) {
     printf("cyw43_sdio_set_irq(%u)\n", enable);
 }
 
+void cyw43_sdio_enable_high_speed_4bit(void) {
+    printf("cyw43_sdio_enable_high_speed_4bit()\n");
+}
+
 int cyw43_sdio_transfer(uint32_t cmd, uint32_t arg, uint32_t *resp) {
     printf("cyw43_sdio_transfer(cmd=%u, arg=%08x)\n", cmd, arg);
-    *resp = 0;
+    if (resp != NULL) {
+        *resp = 0;
+    }
     if (cmd == 52) {
         uint32_t write = (arg >> 31) & 1;
         uint32_t fn = (arg >> 28) & 0x7;
@@ -71,16 +77,4 @@ int cyw43_sdio_transfer(uint32_t cmd, uint32_t arg, uint32_t *resp) {
 int cyw43_sdio_transfer_cmd53(bool write, uint32_t block_size, uint32_t arg, size_t len, uint8_t *buf) {
     printf("cyw43_sdio_transfer_cmd53(write=%d, block_size=%u, arg=%08x, len=%u)\n", write, block_size, arg, len);
     return 0;
-}
-
-int sdio_transfer(uint32_t cmd, uint32_t arg, uint32_t *resp) {
-    printf("sdio_transfer(cmd=%u, arg=%08x)\n", cmd, arg);
-    if (resp != NULL) {
-        *resp = 0;
-    }
-    return 0;
-}
-
-void sdio_enable_high_speed_4bit(void) {
-    printf("sdio_enable_high_speed_4bit()\n");
 }
