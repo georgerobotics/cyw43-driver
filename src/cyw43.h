@@ -58,6 +58,25 @@
  */
 
 /*!
+ * \name CYW43 driver version as components
+ * \brief Current version of the CYW43 driver as major/minor/micro components
+ * \anchor CYW43_VERSION_
+ */
+//!\{
+#define CYW43_VERSION_MAJOR 0
+#define CYW43_VERSION_MINOR 9
+#define CYW43_VERSION_MICRO 0
+//!\}
+
+/*!
+ * \name CYW43 driver version
+ * \brief Combined CYW43 driver version as a 32-bit number
+ */
+//!\{
+#define CYW43_VERSION (CYW43_VERSION_MAJOR << 16 | CYW43_VERSION_MINOR << 8 | CYW43_VERSION_MICRO)
+//!\}
+
+/*!
  * \name Trace flags
  * \anchor CYW43_TRACE_
  */
