@@ -359,7 +359,7 @@ static int cyw43_write_backplane_mem(cyw43_int_t *self, uint32_t addr, uint32_t 
         cyw43_set_backplane_window(self, addr);
         int ret = cyw43_write_bytes(self, BACKPLANE_FUNCTION, backplane_addr_start, backplane_len, buf);
         if (ret != 0) {
-            CYW43_WARN("backplane write 0x%lx,0x%lx failed", addr, backplane_len);
+            CYW43_WARN("backplane write 0x%lx,0x%lx failed\n", addr, backplane_len);
         }
         addr += backplane_len;
         buf += backplane_len;
@@ -1156,7 +1156,7 @@ static int cyw43_ll_sdpcm_poll_device(cyw43_int_t *self, size_t *len, uint8_t **
     #pragma GCC diagnostic pop
     if (hdr[0] == 0 && hdr[1] == 0) {
         // no packets
-        CYW43_DEBUG("No packet zero size header");
+        CYW43_DEBUG("No packet zero size header\n");
         self->had_successful_packet = false;
         return -1;
     }
@@ -1357,7 +1357,7 @@ static void cyw43_ll_bus_sleep_helper(cyw43_int_t *self, bool can_sleep) {
         // cyw43_write_reg_u8(self, BACKPLANE_FUNCTION, SDIO_CHIP_CLOCK_CSR, SBSDIO_HT_AVAIL_REQ);
     }
 
-    CYW43_WARN("could not bring bus up");
+    CYW43_WARN("could not bring bus up\n");
 
     #endif
 }
@@ -1431,7 +1431,7 @@ static void cyw43_clm_load(cyw43_int_t *self, const uint8_t *clm_ptr, size_t clm
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wcast-align"
     if (*(uint32_t *)buf != 0) {
-        CYW43_WARN("CLM load failed");
+        CYW43_WARN("CLM load failed\n");
     }
     #pragma GCC diagnostic pop
     CYW43_VDEBUG("clm data load ok\n");
@@ -1543,13 +1543,13 @@ int cyw43_ll_bus_init(cyw43_ll_t *self_in, const uint8_t *mac) {
     // get RCA
     uint32_t rca;
     if (cyw43_sdio_transfer(3, 0, &rca) != 0) {
-        CYW43_WARN("SDIO enumerate error");
+        CYW43_WARN("SDIO enumerate error\n");
         return CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
     }
 
     // select the card with RCA
     if (cyw43_sdio_transfer(7, rca, NULL) != 0) {
-        CYW43_WARN("SDIO select error");
+        CYW43_WARN("SDIO select error\n");
         return CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
     }
 
@@ -1564,7 +1564,7 @@ int cyw43_ll_bus_init(cyw43_ll_t *self_in, const uint8_t *mac) {
             goto backplane_up;
         }
     }
-    CYW43_WARN("no response from CYW43");
+    CYW43_WARN("no response from CYW43\n");
     return -CYW43_EIO;
 
 backplane_up:
@@ -1579,7 +1579,7 @@ backplane_up:
     cyw43_write_reg_u8(self, BUS_FUNCTION, SDIOD_CCCR_BLKSIZE_0, SDIO_64B_BLOCK);
     reg = cyw43_read_reg_u8(self, BUS_FUNCTION, SDIOD_CCCR_BLKSIZE_0);
     if (reg != SDIO_64B_BLOCK) {
-        CYW43_WARN("can't set block size");
+        CYW43_WARN("can't set block size\n");
         return -CYW43_EIO;
     }
 
@@ -1903,7 +1903,7 @@ int cyw43_ll_wifi_on(cyw43_ll_t *self_in, uint32_t country) {
     // Get and print CLM version
     memcpy(buf, "clmver\x00", 7);
     cyw43_do_ioctl(self, SDPCM_GET, WLC_GET_VAR, 128, buf, WWD_STA_INTERFACE);
-    CYW43_DEBUG("%s", buf);
+    CYW43_DEBUG("%s\n", buf);
     #endif
 
     // Set antenna to chip antenna
