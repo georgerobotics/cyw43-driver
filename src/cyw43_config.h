@@ -91,8 +91,10 @@
 // Miscellaneous configuration.
 
 // No other options right now for TCP/IP stack.
+#ifndef CYW43_LWIP_DISABLE
 #ifndef CYW43_LWIP
 #define CYW43_LWIP (1)
+#endif
 #endif
 
 #ifndef CYW43_NETUTILS
