@@ -232,15 +232,6 @@ void cyw43_cb_tcpip_init(cyw43_t *self, int itf) {
         dhcp_server_init(&self->dhcp_server, &ipconfig[0], &ipconfig[1]);
         #endif
     }
-
-    #if LWIP_MDNS_RESPONDER
-    // TODO better to call after IP address is set
-    char mdns_hostname[9];
-    strncpy(&mdns_hostname[0], self->hostname, 9);
-    cyw43_hal_get_mac_ascii(CYW43_HAL_MAC_WLAN0, 8, 4, &mdns_hostname[4]);
-    mdns_hostname[8] = '\0';
-    mdns_resp_add_netif(n, mdns_hostname, 60);
-    #endif
 }
 
 void cyw43_cb_tcpip_deinit(cyw43_t *self, int itf) {
