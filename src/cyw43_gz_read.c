@@ -37,6 +37,7 @@
 #include "pico/stdlib.h"
 #include "uzlib.h"
 #include "cyw43_gz_read.h"
+#include "cyw43.h"
 
 #define DICT_SIZE 4096
 typedef struct uzlib_data {
@@ -55,7 +56,7 @@ int cyw43_gz_read_start(const uint8_t *raw_data, size_t raw_size)
 {
     uzlib_init();
 
-    uzlib = malloc(sizeof(*uzlib));
+    uzlib = cyw43_malloc(sizeof(*uzlib));
     assert(uzlib);
     if (!uzlib) {
         return CYW43_DECOMPRESS_ERR_NO_MEM;
@@ -102,7 +103,7 @@ int cyw43_gz_read_next(uint8_t *buffer, size_t sz)
 void cyw43_gz_read_end(void)
 {
     if (uzlib) {
-        free(uzlib);
+        cyw43_free(uzlib);
         uzlib = NULL;
     }
 }
