@@ -515,3 +515,6 @@ const unsigned char cyw43_btfw_43439[] CYW43_RESOURCE_ATTRIBUTE = {
   0xed, 0xf7, 0x05, 0x00, 0x00, 0x00, 0x00, 0x01
 };
 const unsigned int cyw43_btfw_43439_len = 6164;
+#define CYW43_BT_FW_LEN (6164)
+#define CYW43_BT_FW_ADDR (cyw43_btfw_43439)
+#define CYW43_RAW_BT_FW_LEN (cyw43_btfw_43439_len)

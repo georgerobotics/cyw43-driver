@@ -82,4 +82,10 @@ int cyw43_write_reg_u8(cyw43_int_t *self, uint32_t function, uint32_t reg, uint3
 int cyw43_write_reg_u16(cyw43_int_t *self, uint32_t fn, uint32_t reg, uint16_t val);
 int cyw43_write_reg_u32(cyw43_int_t *self, uint32_t function, uint32_t reg, uint32_t val);
 
+#if USE_SDIO
+#define MAX_BLOCK_SIZE 16384
+#else
+#define MAX_BLOCK_SIZE 64
+#endif
+
 #endif // CYW43_INCLUDED_CYW43_INTERNAL_H

@@ -55,15 +55,29 @@
 #define CYW43_ENABLE_BLUETOOTH (0)
 #endif
 
+// Whether to compress firware
+#ifndef CYW43_ENABLE_FIRMWARE_COMPRESSION
+#define CYW43_ENABLE_FIRMWARE_COMPRESSION 0
+#endif
+
 // This include should define:
 // - CYW43_WIFI_FW_LEN
 // - CYW43_CLM_LEN
 // - const uintptr_t fw_data
+// - const unsigned int fw_data_len
 #ifndef CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE
 #if CYW43_ENABLE_BLUETOOTH
+#if CYW43_ENABLE_FIRMWARE_COMPRESSION
+#define CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE "firmware/wb43439A0_7_95_49_00_combined.gz.h"
+#else
 #define CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE "firmware/wb43439A0_7_95_49_00_combined.h"
+#endif
+#else
+#if CYW43_ENABLE_FIRMWARE_COMPRESSION
+#define CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE "firmware/w43439A0_7_95_49_00_combined.gz.h"
 #else
 #define CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE "firmware/w43439A0_7_95_49_00_combined.h"
+#endif
 #endif
 #endif
 
@@ -76,6 +90,18 @@
 // alignment, or add more attributes, for the firmware and NVRAM resources.
 #ifndef CYW43_RESOURCE_ATTRIBUTE
 #define CYW43_RESOURCE_ATTRIBUTE __attribute__((aligned(4)))
+#endif
+
+// This include should define:
+// - CYW43_BT_FW_LEN
+// - const unsigned char *bt_fw_data
+// - const unsigned int bt_fw_data_len
+#ifndef CYW43_BT_FIRMWARE_INCLUDE_FILE
+#if CYW43_ENABLE_FIRMWARE_COMPRESSION
+#define CYW43_BT_FIRMWARE_INCLUDE_FILE "firmware/cyw43_btfw_43439.gz.h"
+#else
+#define CYW43_BT_FIRMWARE_INCLUDE_FILE "firmware/cyw43_btfw_43439.h"
+#endif
 #endif
 
 // Timing and timeout configuration.
@@ -165,4 +191,8 @@
 
 #ifndef CYW43_DEFAULT_IP_DNS
 #define CYW43_DEFAULT_IP_DNS LWIP_MAKEU32(8, 8, 8, 8)
+#endif
+
+#ifndef cyw43_get_firmware_funcs
+#define cyw43_get_firmware_funcs cyw43_get_firmware_funcs_default
 #endif
