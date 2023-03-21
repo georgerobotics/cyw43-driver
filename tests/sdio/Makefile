@@ -47,3 +47,11 @@ OBJ_DIRS = $(sort $(dir $(OBJ)))
 $(OBJ): | $(OBJ_DIRS)
 $(OBJ_DIRS):
 	$(MKDIR) -p $@
+
+# Dependency generation
+%.o: %.d
+CFLAGS += -MP -MMD
+DEP := $(OBJ:.o=.d)
+$(DEP):
+
+-include $(DEP)
