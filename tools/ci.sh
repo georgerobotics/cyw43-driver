@@ -1,9 +1,9 @@
 #!/bin/bash
 
 if which nproc > /dev/null; then
-    MAKEOPTS="-j$(nproc)"
+    MAKEOPTS="-rRj$(nproc)"
 else
-    MAKEOPTS="-j$(sysctl -n hw.ncpu)"
+    MAKEOPTS="-rRj$(sysctl -n hw.ncpu)"
 fi
 
 ########################################################################################

@@ -5,6 +5,8 @@ MKDIR ?= mkdir
 
 BUILD ?= build
 
+CC ?= cc
+
 CFLAGS += -I.
 CFLAGS += -I$(CYW43_TOP)
 CFLAGS += -std=c99
