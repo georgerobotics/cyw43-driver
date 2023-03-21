@@ -52,82 +52,97 @@ typedef struct cyw43_firmware_details {
 } cyw43_firmware_details_t;
 //!\}
 
+/** \brief Firmware types
+ */
+typedef enum cyw43_firmare_type {
+    CYW43_FIRMWARE_WIFI,
+    CYW43_FIRMWARE_NVRAM,
+    CYW43_FIRMWARE_CLM,
+    CYW43_FIRMWARE_BLUETOOTH,
+} cyw43_firmare_type_t;
+
 /*!
  * \brief Structure to hold function pointers for loading firmware
  */
 //!\{
 typedef struct cyw43_firmware_funcs {
     const cyw43_firmware_details_t* (*firmware_details)(void); ///< get wifi firmware details
-    int (*start_wifi_fw)(const cyw43_firmware_details_t *fw_details); ///< start wifi firmware loading
-    int (*start_bt_fw)(const cyw43_firmware_details_t *fw_details); ///< start bt firmware loading
-    const uint8_t* (*get_wifi_fw)(const uint8_t *addr, size_t sz_in, uint8_t *buffer, size_t buffer_sz); ///< get block of wifi firmware data
-    const uint8_t* (*get_bt_fw)(const uint8_t *addr, size_t sz_in, uint8_t *buffer, size_t buffer_sz); ///< get block of bt firmware data
-    const uint8_t* (*get_nvram)(const uint8_t *addr, size_t sz_in, uint8_t *buffer, size_t buffer_sz); ///< get block of nvram data
-    const uint8_t* (*get_clm)(const uint8_t *addr, size_t sz_in, uint8_t *buffer, size_t buffer_sz); ///< get block of clm data
-    void (*end)(void); ///< end firmware loading
+    int  (*start_fw_stream)(const cyw43_firmware_details_t *fw_details, cyw43_firmare_type_t which_firmware, void **streaming_context); ///< start fw streaming
+    const uint8_t* (*stream_fw)(void *streaming_context, size_t sz_required, uint8_t *working_buffer); ///< get block of firmware data
+    void (*end_fw_stream)(void *streaming_context, cyw43_firmare_type_t which_firmware); ///< end firmware loading
 } cyw43_firmware_funcs_t;
 //!\}
 
 /*!
  * \brief Get the functions used to load firmware
  *
- * This method returns pointers to functions that load firmware
+ * Return pointers to functions that load firmware
  *
  * \return structure that contains functions that load firmware
  */
 const cyw43_firmware_funcs_t *cyw43_get_firmware_funcs(void);
 
 /*!
- * \brief Read an uncompressed firmware data
- *
- * This method reads uncompressed firmware data
- *
- * \param addr Address to start reading
- * \param sz_in Amount data to read in bytes
- * \param buffer Temporary buffer that can be used to read data into
- * \param buffer_sz Size of buffer in bytes
- * \return Pointer to data read
- */
-const uint8_t *cyw43_read_uncompressed_firmware(const uint8_t *addr, size_t sz_in, uint8_t *buffer, size_t buffer_sz);
-
-/*!
  * \brief Start reading wifi firmware data
  *
- * This method starts the process of reading compressed wifi firmware
+ * Starts the process of reading uncompressed wifi firmware
  *
- * \param fw Firmware details
+ * \param fw_details Firmware details
+ * \param which_firmware Firmware to start reading
+ * \param streaming_context On return a pointer to the internal streaming state
  * \return Zero on success or else an error code
  */
-int cyw43_start_compressed_wifi_firmware(const cyw43_firmware_details_t* fw);
+
+int cyw43_start_uncompressed_firmware(const cyw43_firmware_details_t *fw_details, cyw43_firmare_type_t which_firmware, void **streaming_context);
 
 /*!
- * \brief Start reading bluetooth firmware data
+ * \brief Read an uncompressed firmware data
  *
- * This method starts the process of reading compressed bluetooth firmware
+ * Reads uncompressed firmware data
  *
- * \param fw Firmware details
+ * \param streaming_context context created by the start function
+ * \param sz_required Amount data to read in bytes
+ * \param buffer Temporary buffer that can be used to read data into
+ * \return Pointer to data read
+ */
+const uint8_t *cyw43_read_uncompressed_firmware(void *streaming_context, size_t sz_required, __unused uint8_t *buffer);
+
+/*!
+ * \brief End reading uncompressed firmware data
+ *
+ * Ends the process of reading compressed firmware and frees resources
+ */
+void cyw43_end_uncompressed_firmware(void *streaming_context, cyw43_firmare_type_t which_firmware);
+
+/*!
+ * \brief Start reading compressed wifi firmware data
+ *
+ * Starts the process of reading compressed wifi firmware
+ *
+ * \param fw_details Firmware details
+ * \param which_firmware Firmware to start reading
+ * \param streaming_context On return a pointer to the internal streaming state
  * \return Zero on success or else an error code
  */
-int cyw43_start_compressed_bt_firmware(__unused const cyw43_firmware_details_t* fw);
+int cyw43_start_compressed_firmware(const cyw43_firmware_details_t *fw_details, cyw43_firmare_type_t which_firmware, void **streaming_context);
 
 /*!
  * \brief Read compressed firmware data
  *
- * This method reads compressed firmware data
+ * Reads compressed firmware data
  *
- * \param addr Address to start reading
- * \param sz_in Amount data to read in bytes
+ * \param streaming_context context created by the start function
+ * \param sz_required Amount data to read in bytes
  * \param buffer Temporary buffer that can be used to read data into
- * \param buffer_sz Size of buffer in bytes
  * \return Pointer to data read
  */
-const uint8_t *cyw43_read_compressed_firmware(const uint8_t *addr, size_t sz_in, uint8_t *buffer, size_t buffer_sz);
+const uint8_t* cyw43_read_compressed_firmware(void *streaming_context, size_t sz_required, uint8_t *buffer);
 
 /*!
  * \brief End reading compressed firmware data
  *
- * This method ends the process of reading compressed firmware
+ * Ends the process of reading compressed firmware and frees resources
  */
-void cyw43_end_compressed_firmware(void);
+void cyw43_end_compressed_firmware(void *streaming_context, cyw43_firmare_type_t which_firmware);
 
 #endif

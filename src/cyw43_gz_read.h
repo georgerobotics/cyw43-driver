@@ -39,28 +39,31 @@
  *
  * This method prepares for decompressing data.
  *
+ * \param uzlib_context Pointer used to return the decompression context
  * \param raw_data The compressed data
  * \param raw_size The size in bytes of the data
  * \return >0 on success, the uncompressed data size in bytes or <0 on error
  */
-int cyw43_gz_read_start(const uint8_t *raw_data, size_t raw_size);
+int cyw43_gz_read_start(void **uzlib_context, const uint8_t *raw_data, size_t raw_size);
 
 /*!
  * \brief Get the next block of uncompressed data
  *
  * This method returns the next block of uncompressed data.
  *
+ * \param uzlib_context Pointer to the decompression context
  * \param buffer Buffer to fill with uncompressed data
  * \param sz Requested size of uncompressed data in bytes
  * \return The amount of data returned in the buffer or <0 on error
  */
-int cyw43_gz_read_next(uint8_t *buffer, size_t sz);
+int cyw43_gz_read_next(void *uzlib_context, uint8_t *buffer, size_t sz);
 
 /*!
  * \brief Finish decompressing data
  *
+ * \param uzlib_context Pointer to the decompression context
  * This method frees any resources used for decompressing data.
  */
-void cyw43_gz_read_end(void);
+void cyw43_gz_read_end(void *uzlib_context);
 
 #endif

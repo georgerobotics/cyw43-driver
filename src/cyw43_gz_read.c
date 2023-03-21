@@ -45,23 +45,21 @@ typedef struct uzlib_data {
     struct uzlib_uncomp state;
     size_t amount_left;
 } uzlib_data_t;
-static uzlib_data_t *uzlib;
 
 #define CYW43_DECOMPRESS_ERR_NO_MEM -1
 #define CYW43_DECOMPRESS_ERR_BAD_HEADER -2
 #define CYW43_DECOMPRESS_ERR_NO_MORE -3
 #define CYW43_DECOMPRESS_ERR_DECOMPRESS -4
 
-int cyw43_gz_read_start(const uint8_t *raw_data, size_t raw_size)
+int cyw43_gz_read_start(void **uzlib_context, const uint8_t *raw_data, size_t raw_size)
 {
     uzlib_init();
 
-    uzlib = cyw43_malloc(sizeof(*uzlib));
+    uzlib_data_t *uzlib = cyw43_malloc(sizeof(uzlib_data_t));
     assert(uzlib);
     if (!uzlib) {
         return CYW43_DECOMPRESS_ERR_NO_MEM;
     }
-
     uzlib->amount_left = raw_data[raw_size - 1];
     uzlib->amount_left = 256 * uzlib->amount_left + raw_data[raw_size - 2];
     uzlib->amount_left = 256 * uzlib->amount_left + raw_data[raw_size - 3];
@@ -76,14 +74,19 @@ int cyw43_gz_read_start(const uint8_t *raw_data, size_t raw_size)
     int res = uzlib_gzip_parse_header(&uzlib->state);
     assert(res == TINF_OK);
     if (res != TINF_OK) {
+        cyw43_free(uzlib);
         return CYW43_DECOMPRESS_ERR_BAD_HEADER;
     }
 
+    *uzlib_context = uzlib;
     return (int)uzlib->amount_left;
 }
 
-int cyw43_gz_read_next(uint8_t *buffer, size_t sz)
+int cyw43_gz_read_next(void *uzlib_context, uint8_t *buffer, size_t sz)
 {
+    assert(uzlib_context);
+    uzlib_data_t *uzlib = (uzlib_data_t *)uzlib_context;
+
     assert(uzlib->amount_left > 0);
     if (uzlib->amount_left <= 0) {
         return CYW43_DECOMPRESS_ERR_NO_MORE;
@@ -100,8 +103,12 @@ int cyw43_gz_read_next(uint8_t *buffer, size_t sz)
     return chunk_sz;
 }
 
-void cyw43_gz_read_end(void)
+void cyw43_gz_read_end(void *uzlib_context)
 {
+    assert(uzlib_context);
+    uzlib_data_t *uzlib = (uzlib_data_t *)uzlib_context;
+
+    uzlib->amount_left = 0;
     if (uzlib) {
         cyw43_free(uzlib);
         uzlib = NULL;
