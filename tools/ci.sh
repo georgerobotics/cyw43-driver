@@ -32,7 +32,7 @@ function ci_code_spell_run {
 }
 
 ########################################################################################
-# code spelling
+# tests
 
 function ci_tests_setup {
     sudo dpkg --add-architecture i386
