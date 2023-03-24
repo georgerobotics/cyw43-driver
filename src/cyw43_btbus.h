@@ -31,6 +31,11 @@
  * options please email contact@georgerobotics.com.au.
  */
 
+/**
+ * \file
+ * \brief CYW43 Bluetooth BUS API
+*/
+
 #ifndef CYW43_INCLUDED_CYW43_BTBUS_H
 #define CYW43_INCLUDED_CYW43_BTBUS_H
 

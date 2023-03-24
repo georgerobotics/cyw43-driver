@@ -31,6 +31,11 @@
  * options please email contact@georgerobotics.com.au.
  */
 
+/**
+ * \file
+ * \brief CYW43 SPI API
+*/
+
 #ifndef CYW43_INCLUDED_CYW43_SPI_H
 #define CYW43_INCLUDED_CYW43_SPI_H
 

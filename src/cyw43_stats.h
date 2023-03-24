@@ -31,6 +31,11 @@
  * options please email contact@georgerobotics.com.au.
  */
 
+/**
+ * \file
+ * \brief CYW43 Stats API
+*/
+
 #ifndef CYW43_STATS_H
 #define CYW43_STATS_H
 

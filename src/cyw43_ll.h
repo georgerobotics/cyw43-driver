@@ -46,6 +46,7 @@
 //!\{
 
 /**
+ *  \internal
  *  \file cyw43_ll.h
  *  \brief Low Level CYW43 driver interface
  */

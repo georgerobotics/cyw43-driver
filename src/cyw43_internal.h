@@ -31,6 +31,11 @@
  * options please email contact@georgerobotics.com.au.
  */
 
+/**
+ * \internal
+ * \file
+*/
+
 #ifndef CYW43_INCLUDED_CYW43_INTERNAL_H
 #define CYW43_INCLUDED_CYW43_INTERNAL_H
 

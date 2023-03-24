@@ -31,6 +31,11 @@
  * options please email contact@georgerobotics.com.au.
  */
 
+/**
+ * \internal
+ * \file
+*/
+
 // Import port-specific configuration file.
 #ifdef CYW43_CONFIG_FILE
 #include CYW43_CONFIG_FILE
