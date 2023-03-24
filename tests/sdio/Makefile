@@ -48,10 +48,32 @@ $(OBJ): | $(OBJ_DIRS)
 $(OBJ_DIRS):
 	$(MKDIR) -p $@
 
+# "Include-what-you-use"-test compilation for public headers
+PUBLIC_HEADER := \
+	src/cyw43.h \
+	src/cyw43_btbus.h \
+	src/cyw43_country.h \
+	src/cyw43_sdio.h \
+	src/cyw43_spi.h \
+	src/cyw43_stats.h \
+
+vpath %.h . $(CYW43_TOP)
+
+PUBLIC_HEADER_GCH := $(patsubst %,$(BUILD)/%.gch,$(PUBLIC_HEADER))
+
+# Static pattern rule testing header compilation by making a pre-compiled header of each
+$(PUBLIC_HEADER_GCH): $(BUILD)/%.h.gch: %.h
+# Pass -Wno-pedantic to suppress "empty translation unit" errors
+	$(CC) $(CFLAGS) -Wno-pedantic -c $< -o $@
+
+# Add to phony test target trigger
+test: $(PUBLIC_HEADER_GCH)
+
 # Dependency generation
 %.o: %.d
+%.gch: %.d
 CFLAGS += -MP -MMD
-DEP := $(OBJ:.o=.d)
+DEP := $(OBJ:.o=.d) $(PUBLIC_HEADER_GCH:.gch=.d)
 $(DEP):
 
 -include $(DEP)

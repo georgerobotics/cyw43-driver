@@ -34,6 +34,10 @@
 #ifndef CYW43_INCLUDED_CYW43_SDIO_H
 #define CYW43_INCLUDED_CYW43_SDIO_H
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
+
 // These must be provided by a port, if the SDIO bus interface is used.
 void cyw43_sdio_init(void);
 void cyw43_sdio_reinit(void);
