@@ -116,9 +116,6 @@
 #define STATUS_F3_PKT_LEN_MASK          ((uint32_t)0xFFE00000)
 #define STATUS_F3_PKT_LEN_SHIFT         ((uint32_t)21)
 
-#define WHD_BUS_SPI_MAX_BACKPLANE_TRANSFER_SIZE     (64) // Max packet size on F1
-#define WHD_BUS_SPI_BACKPLANE_READ_PADD_SIZE        (4)
-
 #define SPI_FRAME_CONTROL               ((uint32_t)0x1000D)
 
 // Read and write before switching to 32bit mode

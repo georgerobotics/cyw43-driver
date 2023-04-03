@@ -54,7 +54,9 @@ typedef struct _cyw43_int_t {
     uint16_t wwd_sdpcm_requested_ioctl_id;
     bool bus_is_up;
     bool had_successful_packet;
-    uint32_t spi_header[2] __attribute__((aligned(4))); // Must be before spid_buf
+    #if CYW43_BACKPLANE_READ_PAD_LEN_BYTES > 0
+    uint32_t spi_header[(CYW43_BACKPLANE_READ_PAD_LEN_BYTES / 4) + 1] __attribute__((aligned(4))); // Must be before spid_buf
+    #endif
     uint8_t spid_buf[2048];
 
     uint8_t last_ssid_joined[36];

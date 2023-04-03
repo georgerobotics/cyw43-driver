@@ -331,9 +331,13 @@ static void cyw43_set_backplane_window(cyw43_int_t *self, uint32_t addr) {
 static uint32_t cyw43_read_backplane(cyw43_int_t *self, uint32_t addr, size_t size) {
     cyw43_set_backplane_window(self, addr);
     addr &= BACKPLANE_ADDR_MASK;
+    #if CYW43_USE_SPI
+    addr |= SBSDIO_SB_ACCESS_2_4B_FLAG;
+    #else
     if (size == 4) {
         addr |= SBSDIO_SB_ACCESS_2_4B_FLAG;
     }
+    #endif
     uint32_t reg = cyw43_read_reg(self, BACKPLANE_FUNCTION, addr, size);
     cyw43_set_backplane_window(self, CHIPCOMMON_BASE_ADDRESS);
     return reg;
@@ -342,42 +346,16 @@ static uint32_t cyw43_read_backplane(cyw43_int_t *self, uint32_t addr, size_t si
 static void cyw43_write_backplane(cyw43_int_t *self, uint32_t addr, size_t size, uint32_t val) {
     cyw43_set_backplane_window(self, addr);
     addr &= BACKPLANE_ADDR_MASK;
+    #if CYW43_USE_SPI
+    addr |= SBSDIO_SB_ACCESS_2_4B_FLAG;
+    #else
     if (size == 4) {
         addr |= SBSDIO_SB_ACCESS_2_4B_FLAG;
     }
+    #endif
     cyw43_write_reg(self, BACKPLANE_FUNCTION, addr, size, val);
     cyw43_set_backplane_window(self, CHIPCOMMON_BASE_ADDRESS);
 }
-
-#if CYW43_ENABLE_BLUETOOTH
-static int cyw43_write_backplane_mem(cyw43_int_t *self, uint32_t addr, uint32_t len, const uint8_t *buf) {
-    assert(len <= CYW43_BUS_MAX_BLOCK_SIZE);
-    while (len > 0) {
-        const uint32_t backplane_addr_start = addr & BACKPLANE_ADDR_MASK;
-        const uint32_t backplane_addr_end = MIN(backplane_addr_start + len, BACKPLANE_ADDR_MASK + 1);
-        const uint32_t backplane_len = backplane_addr_end - backplane_addr_start;
-        cyw43_set_backplane_window(self, addr);
-        int ret = cyw43_write_bytes(self, BACKPLANE_FUNCTION, backplane_addr_start, backplane_len, buf);
-        if (ret != 0) {
-            CYW43_WARN("backplane write 0x%lx,0x%lx failed\n", addr, backplane_len);
-        }
-        addr += backplane_len;
-        buf += backplane_len;
-        len -= backplane_len;
-    }
-    cyw43_set_backplane_window(self, CHIPCOMMON_BASE_ADDRESS);
-    return 0;
-}
-
-static int cyw43_read_backplane_mem(cyw43_int_t *self, uint32_t addr, uint32_t len, uint8_t *buf) {
-    assert(len <= CYW43_BUS_MAX_BLOCK_SIZE);
-    assert(((addr & BACKPLANE_ADDR_MASK) + len) <= (BACKPLANE_ADDR_MASK + 1));
-    cyw43_set_backplane_window(self, addr);
-    int ret = cyw43_read_bytes(self, BACKPLANE_FUNCTION, addr & BACKPLANE_ADDR_MASK, len, buf);
-    cyw43_set_backplane_window(self, CHIPCOMMON_BASE_ADDRESS);
-    return ret;
-}
-#endif
 
 static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_len, int from_storage, uintptr_t source) {
     // round up len to simplify download
@@ -453,7 +431,11 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
         } else {
             src = (const uint8_t *)source + offset;
         }
-        int ret = cyw43_write_bytes(self, BACKPLANE_FUNCTION, dest_addr & BACKPLANE_ADDR_MASK, sz, src);
+        dest_addr &= BACKPLANE_ADDR_MASK;
+        #if CYW43_USE_SPI
+        dest_addr |= SBSDIO_SB_ACCESS_2_4B_FLAG;
+        #endif
+        int ret = cyw43_write_bytes(self, BACKPLANE_FUNCTION, dest_addr, sz, src);
         if (ret != 0) {
 
             return CYW43_FAIL_FAST_CHECK(ret);
@@ -1507,7 +1489,7 @@ int cyw43_ll_bus_init(cyw43_ll_t *self_in, const uint8_t *mac) {
         val = cyw43_read_reg_u32(self, BUS_FUNCTION, SPI_BUS_CONTROL);
         CYW43_VDEBUG("read SPI_BUS_CONTROL 0x%lx\n", val);
 
-        if (cyw43_write_reg_u8(self, BUS_FUNCTION, SPI_RESP_DELAY_F1, WHD_BUS_SPI_BACKPLANE_READ_PADD_SIZE) != 0) {
+        if (cyw43_write_reg_u8(self, BUS_FUNCTION, SPI_RESP_DELAY_F1, CYW43_BACKPLANE_READ_PAD_LEN_BYTES) != 0) {
             break;
         }
 
@@ -2378,12 +2360,31 @@ uint32_t cyw43_ll_read_backplane_reg(cyw43_ll_t *self_in, uint32_t addr) {
 
 int cyw43_ll_write_backplane_mem(cyw43_ll_t *self_in, uint32_t addr, uint32_t len, const uint8_t *buf) {
     cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
-    return cyw43_write_backplane_mem(self, addr, len, buf);
+    while (len > 0) {
+        const uint32_t backplane_addr_start = addr & BACKPLANE_ADDR_MASK;
+        const uint32_t backplane_addr_end = MIN(backplane_addr_start + len, BACKPLANE_ADDR_MASK + 1);
+        const uint32_t backplane_len = backplane_addr_end - backplane_addr_start;
+        cyw43_set_backplane_window(self, addr);
+        int ret = cyw43_write_bytes(self, BACKPLANE_FUNCTION, backplane_addr_start | SBSDIO_SB_ACCESS_2_4B_FLAG, backplane_len, buf);
+        if (ret != 0) {
+            CYW43_PRINTF("backplane write 0x%lx,0x%lx failed", addr, backplane_len);
+        }
+        addr += backplane_len;
+        buf += backplane_len;
+        len -= backplane_len;
+    }
+    cyw43_set_backplane_window(self, CHIPCOMMON_BASE_ADDRESS);
+    return 0;
 }
 
 int cyw43_ll_read_backplane_mem(cyw43_ll_t *self_in, uint32_t addr, uint32_t len, uint8_t *buf) {
     cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
-    return cyw43_read_backplane_mem(self, addr, len, buf);
+    assert(len <= CYW43_BUS_MAX_BLOCK_SIZE);
+    assert(((addr & BACKPLANE_ADDR_MASK) + len) <= (BACKPLANE_ADDR_MASK + 1));
+    cyw43_set_backplane_window(self, addr);
+    int ret = cyw43_read_bytes(self, BACKPLANE_FUNCTION, (addr & BACKPLANE_ADDR_MASK) | SBSDIO_SB_ACCESS_2_4B_FLAG, len, buf);
+    cyw43_set_backplane_window(self, CHIPCOMMON_BASE_ADDRESS);
+    return ret;
 }
 
 #endif
