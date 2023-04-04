@@ -205,8 +205,8 @@ static int cyw43_ensure_up(cyw43_t *self) {
     #if USE_SDIOIT
     cyw43_sdio_set_irq(true);
     #elif !CYW43_USE_SPI
-    extern void extint_set(const pin_obj_t *pin, uint32_t mode);
-    extint_set(CYW43_PIN_WL_HOST_WAKE, GPIO_MODE_IT_FALLING);
+    // If CYW43_PIN_WL_HOST_WAKE has a falling edge, cyw43_poll (if it's not NULL) should be called.
+    cyw43_hal_pin_config_irq_falling(CYW43_PIN_WL_HOST_WAKE, true);
     #endif
 
     // Kick things off
