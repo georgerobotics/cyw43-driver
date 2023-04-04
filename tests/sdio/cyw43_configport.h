@@ -13,6 +13,7 @@
 #define CYW43_PIN_WL_REG_ON                 (1)
 #define CYW43_PIN_WL_RFSW_VDD               (2)
 #define CYW43_PIN_WL_SDIO_1                 (3)
+#define CYW43_PIN_WL_HOST_WAKE              (4)
 
 #define CYW43_EPERM                         (1)
 #define CYW43_EIO                           (5)
@@ -26,6 +27,7 @@
 #define CYW43_SDPCM_SEND_COMMON_WAIT        do { } while (0)
 #define CYW43_DO_IOCTL_WAIT                 do { } while (0)
 
+#define CYW43_HAL_PIN_MODE_INPUT            (0)
 #define CYW43_HAL_PIN_MODE_OUTPUT           (1)
 #define CYW43_HAL_PIN_PULL_NONE             (0)
 #define CYW43_HAL_MAC_WLAN0                 (0)
@@ -48,6 +50,9 @@ static inline void cyw43_hal_get_mac(int interface, uint8_t mac[6]) {
 }
 
 static inline void cyw43_hal_pin_config(int pin, int mode, int pull, int alt) {
+}
+
+static inline void cyw43_hal_pin_config_irq_falling(int pin, int enable) {
 }
 
 static inline int cyw43_hal_pin_read(int pin) {
