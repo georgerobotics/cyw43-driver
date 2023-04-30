@@ -1672,7 +1672,7 @@ alp_set:
     cyw43_download_resource(self, 0x00000000, CYW43_WIFI_FW_LEN, 1, 0x100 + 0x1000);
     */
 
-    size_t wifi_nvram_len = ALIGN_UINT(sizeof(wifi_nvram_4343), 64);
+    size_t wifi_nvram_len = ALIGN_UINT(sizeof(wifi_nvram_4343), 256);
     const uint8_t *wifi_nvram_data = wifi_nvram_4343;
     cyw43_download_resource(self, CYW43_RAM_SIZE - 4 - wifi_nvram_len, wifi_nvram_len, 0, (uintptr_t)wifi_nvram_data);
     uint32_t sz = ((~(wifi_nvram_len / 4) & 0xffff) << 16) | (wifi_nvram_len / 4);
