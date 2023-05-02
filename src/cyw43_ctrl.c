@@ -205,8 +205,7 @@ STATIC int cyw43_ensure_up(cyw43_t *self) {
     #if USE_SDIOIT
     cyw43_sdio_set_irq(true);
     #elif !CYW43_USE_SPI
-    extern void extint_set(const pin_obj_t *pin, uint32_t mode);
-    extint_set(CYW43_PIN_WL_HOST_WAKE, GPIO_MODE_IT_FALLING);
+    cyw43_hal_pin_extint(CYW43_PIN_WL_HOST_WAKE, CYW43_HAL_PIN_MODE_IT_FALLING);
     #endif
 
     // Kick things off
