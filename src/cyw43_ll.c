@@ -100,9 +100,9 @@ static inline void cyw43_put_le32(uint8_t *buf, uint32_t x) {
 #if VERIFY_FIRMWARE_DOWNLOAD
 static void cyw43_xxd(size_t len, const uint8_t *buf) {
     for (int i = 0; i < len; ++i) {
-        CWY43_PRINTF(" %02x", buf[i]);
+        CYW43_PRINTF(" %02x", buf[i]);
     }
-    CWY43_PRINTF("\n");
+    CYW43_PRINTF("\n");
 }
 #endif
 
