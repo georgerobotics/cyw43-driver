@@ -39,6 +39,12 @@
 #ifndef CYW43_INCLUDED_CYW43_INTERNAL_H
 #define CYW43_INCLUDED_CYW43_INTERNAL_H
 
+#include "cyw43_ll.h"
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
+
 #define BUS_FUNCTION (0)
 #define BACKPLANE_FUNCTION (1)
 #define WLAN_FUNCTION (2)

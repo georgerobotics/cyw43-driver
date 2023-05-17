@@ -39,6 +39,11 @@
 #ifndef CYW43_INCLUDED_CYW43_SPI_H
 #define CYW43_INCLUDED_CYW43_SPI_H
 
+#include "cyw43_internal.h"
+
+#include <stdint.h>
+#include <stddef.h>
+
 // Test register value
 #define TEST_PATTERN 0xFEEDBEADu
 
