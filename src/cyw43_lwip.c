@@ -161,10 +161,6 @@ STATIC err_t cyw43_netif_init(struct netif *netif) {
 //}
 //#endif
 
-#ifndef CYW43_HOST_NAME
-#define CYW43_HOST_NAME "PYBD"
-#endif
-
 void cyw43_cb_tcpip_init(cyw43_t *self, int itf) {
     ip_addr_t ipconfig[4];
     #if LWIP_IPV6
@@ -206,7 +202,7 @@ void cyw43_cb_tcpip_init(cyw43_t *self, int itf) {
     #else
     #error Unsupported
     #endif
-    netif_set_hostname(n, CYW43_HOST_NAME);
+    netif_set_hostname(n, self->hostname);
     netif_set_default(n);
     netif_set_up(n);
 
