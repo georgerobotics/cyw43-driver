@@ -206,7 +206,9 @@ void cyw43_cb_tcpip_init(cyw43_t *self, int itf) {
     #else
     #error Unsupported
     #endif
+    #if LWIP_NETIF_HOSTNAME
     netif_set_hostname(n, CYW43_HOST_NAME);
+    #endif
     netif_set_default(n);
     netif_set_up(n);
 
