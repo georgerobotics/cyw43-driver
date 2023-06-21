@@ -707,7 +707,10 @@ void cyw43_wifi_ap_get_stas(cyw43_t *self, int *num_stas, uint8_t *macs) {
         return;
     }
 
-    cyw43_ll_wifi_ap_get_stas(&self->cyw43_ll, num_stas, macs);
+    ret = cyw43_ll_wifi_ap_get_stas(&self->cyw43_ll, num_stas, macs);
+    if (ret != 0) {
+        *num_stas = 0;
+    }
     CYW43_THREAD_EXIT;
 }
 

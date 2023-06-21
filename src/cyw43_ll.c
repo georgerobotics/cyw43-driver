@@ -2280,7 +2280,13 @@ int cyw43_ll_wifi_ap_get_stas(cyw43_ll_t *self_in, int *num_stas, uint8_t *macs)
     memcpy(buf, "maxassoc\x00", 9);
     cyw43_put_le32(buf + 9, WWD_AP_INTERFACE);
     cyw43_do_ioctl(self, SDPCM_GET, WLC_GET_VAR, 9 + 4, buf, WWD_STA_INTERFACE);
+    int err = cyw43_do_ioctl(self, SDPCM_GET, WLC_GET_VAR, 9 + 4, buf, WWD_STA_INTERFACE);
+    if (err != 0) {
+        return err;
+    }
     uint32_t maxassoc = cyw43_get_le32(buf);
+    uint32_t max_macs_buf = (sizeof(self->spid_buf) - SDPCM_HEADER_LEN - 16 - 4) / 6;
+    maxassoc = MIN(maxassoc, max_macs_buf);
 
     if (macs == NULL) {
         // Return just the maximum number of STAs
@@ -2288,11 +2294,17 @@ int cyw43_ll_wifi_ap_get_stas(cyw43_ll_t *self_in, int *num_stas, uint8_t *macs)
         return 0;
     }
 
+    // Make sure all MACs will fit in buffer; size specified in num_stas
+    maxassoc = MIN(maxassoc, (uint32_t)*num_stas);
+
     // Get associated STAs
     cyw43_put_le32(buf, maxassoc);
-    cyw43_do_ioctl(self, SDPCM_GET, WLC_GET_ASSOCLIST, 4 + maxassoc * 6, buf, WWD_AP_INTERFACE);
-
-    *num_stas = cyw43_get_le32(buf);
+    err = cyw43_do_ioctl(self, SDPCM_GET, WLC_GET_ASSOCLIST, 4 + maxassoc * 6, buf, WWD_AP_INTERFACE);
+    if (err != 0) {
+        return err;
+    }
+    uint32_t stas_connected = cyw43_get_le32(buf);
+    *num_stas = MIN(stas_connected, maxassoc);
     memcpy(macs, buf + 4, *num_stas * 6);
     return 0;
 }

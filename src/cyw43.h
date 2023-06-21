@@ -474,6 +474,7 @@ static inline void cyw43_wifi_ap_set_auth(cyw43_t *self, uint32_t auth) {
  *
  * \param self the driver state object. This should always be \c &cyw43_state
  * \param max_stas Returns the maximum number of devices (STAs) that can be connected to the access point
+ * (set to 0 on error)
  */
 void cyw43_wifi_ap_get_max_stas(cyw43_t *self, int *max_stas);
 
@@ -484,9 +485,10 @@ void cyw43_wifi_ap_get_max_stas(cyw43_t *self, int *max_stas);
  * connected to the wifi access point.
  *
  * \param self the driver state object. This should always be \c &cyw43_state
- * \param num_stas Returns the number of devices (STA) connected to the access point
- * \param macs Returns the mac addresses of devies (STA) connected to the access point.
- * The supplied buffer should have enough room for 6 bytes per mac address.
+ * \param num_stas Caller must provide the number of MACs that will fit in the macs buffer;
+ * The supplied buffer should have enough room for 6 bytes per MAC address.
+ * Returns the number of devices (STA) connected to the access point.
+ * \param macs Returns up to num_stas MAC addresses of devices (STA) connected to the access point.
  * Call \ref cyw43_wifi_ap_get_max_stas to determine how many mac addresses can be returned.
  */
 void cyw43_wifi_ap_get_stas(cyw43_t *self, int *num_stas, uint8_t *macs);
