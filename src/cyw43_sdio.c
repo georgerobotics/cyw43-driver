@@ -37,6 +37,8 @@
 #include "cyw43_internal.h"
 #include "cyw43_sdio.h"
 
+#if !CYW43_USE_SPI
+
 // Performs an SDIO CMD52 transaction.
 // On success returns the response byte (0-255).
 // On error returns a negative errno code.
@@ -94,3 +96,5 @@ int cyw43_write_reg_u8(cyw43_int_t *self, uint32_t function, uint32_t reg, uint3
 int cyw43_write_reg_u32(cyw43_int_t *self, uint32_t function, uint32_t reg, uint32_t val) {
     return cyw43_sdio_cmd53(true, function, reg, 4, (void *)&val);
 }
+
+#endif
