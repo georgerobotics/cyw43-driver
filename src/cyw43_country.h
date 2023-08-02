@@ -92,6 +92,7 @@
 #define CYW43_COUNTRY_NEW_ZEALAND       CYW43_COUNTRY('N', 'Z', 0)
 #define CYW43_COUNTRY_NIGERIA           CYW43_COUNTRY('N', 'G', 0)
 #define CYW43_COUNTRY_NORWAY            CYW43_COUNTRY('N', 'O', 0)
+#define CYW43_COUNTRY_PAKISTAN          CYW43_COUNTRY('P', 'K', 0)
 #define CYW43_COUNTRY_PERU              CYW43_COUNTRY('P', 'E', 0)
 #define CYW43_COUNTRY_PHILIPPINES       CYW43_COUNTRY('P', 'H', 0)
 #define CYW43_COUNTRY_POLAND            CYW43_COUNTRY('P', 'L', 0)
