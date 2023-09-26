@@ -361,7 +361,7 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
     // round up len to simplify download
     size_t len = (raw_len + 255) & ~255;
 
-    CYW43_VDEBUG("writing %lu bytes to 0x%lx\n", (uint32_t)len, (uint32_t)addr);
+    CYW43_VDEBUG("writing %lu bytes to 0x%lx\n", (unsigned long)len, (unsigned long)addr);
 
     uint32_t block_size = CYW43_BUS_MAX_BLOCK_SIZE;
     if (from_storage) {
@@ -772,7 +772,12 @@ static int cyw43_send_ioctl(cyw43_int_t *self, uint32_t kind, uint32_t cmd, size
     memcpy(self->spid_buf + SDPCM_HEADER_LEN + 16, buf, len);
 
     // do transfer
-    CYW43_VDEBUG("Sending cmd %s (%lu) len %lu flags %lu status %lu\n", ioctl_cmd_name(header->cmd), header->cmd, header->len, header->flags, header->status);
+    CYW43_VDEBUG("Sending cmd %s (%lu) len %lu flags %lu status %lu\n",
+		 ioctl_cmd_name(header->cmd),
+		 (unsigned long int)header->cmd,
+		 (unsigned long int)header->len,
+		 (unsigned long int)header->flags,
+		 (unsigned long int)header->status);
     if (header->cmd == WLC_SET_VAR || header->cmd == WLC_GET_VAR) {
         CYW43_VDEBUG("%s %s\n", ioctl_cmd_name(header->cmd), (const char *)buf);
     }
@@ -1107,7 +1112,7 @@ static int cyw43_ll_sdpcm_poll_device(cyw43_int_t *self, size_t *len, uint8_t **
             break;
         }
     }
-    CYW43_VDEBUG("bus_gspi_status 0x%lx 0x%lx\n", bus_gspi_status, bus_gspi_status >> 9);
+    CYW43_VDEBUG("bus_gspi_status 0x%lx 0x%lx\n", (unsigned long)bus_gspi_status, (unsigned long)bus_gspi_status >> 9);
     if (bus_gspi_status == 0xFFFFFFFF) {
         return -1;
     }
@@ -1117,7 +1122,7 @@ static int cyw43_ll_sdpcm_poll_device(cyw43_int_t *self, size_t *len, uint8_t **
         bytes_pending = (bus_gspi_status >> 9) & 0x7FF;
         if (bytes_pending == 0 || bytes_pending > (LINK_MTU - GSPI_PACKET_OVERHEAD) ||
             bus_gspi_status & F2_F3_FIFO_RD_UNDERFLOW) {
-            CYW43_DEBUG("SPI invalid bytes pending %lu\n", bytes_pending);
+	  CYW43_DEBUG("SPI invalid bytes pending %lu\n", (unsigned long) bytes_pending);
             cyw43_write_reg_u8(self, BACKPLANE_FUNCTION, SPI_FRAME_CONTROL, (1 << 0));
             self->had_successful_packet = false;
             return -1;
@@ -1400,7 +1405,7 @@ static void cyw43_clm_load(cyw43_int_t *self, const uint8_t *clm_ptr, size_t clm
         #pragma GCC diagnostic pop
         memcpy(buf + 20, clm_ptr + off, len);
 
-        CYW43_VDEBUG("clm data send %lu/%zu\n", off + len, clm_len);
+        CYW43_VDEBUG("clm data send %lu/%zu\n", (unsigned long)(off + len), clm_len);
 
         // Send data aligned to 8 bytes; padding comes from junk at end of buf
         cyw43_do_ioctl(self, SDPCM_SET, WLC_SET_VAR, ALIGN_UINT(20 + len, 8), buf, WWD_STA_INTERFACE);
@@ -1480,14 +1485,14 @@ int cyw43_ll_bus_init(cyw43_ll_t *self_in, const uint8_t *mac) {
         break; // failed
     chip_up:
         // Switch to 32bit mode
-        CYW43_VDEBUG("setting SPI_BUS_CONTROL 0x%lx\n", val);
+        CYW43_VDEBUG("setting SPI_BUS_CONTROL 0x%lx\n", (long unsigned int) val);
 
         if (write_reg_u32_swap(self, BUS_FUNCTION, SPI_BUS_CONTROL, val) != 0) {
             break;
         }
 
         val = cyw43_read_reg_u32(self, BUS_FUNCTION, SPI_BUS_CONTROL);
-        CYW43_VDEBUG("read SPI_BUS_CONTROL 0x%lx\n", val);
+        CYW43_VDEBUG("read SPI_BUS_CONTROL 0x%lx\n", (long unsigned int) val);
 
         if (cyw43_write_reg_u8(self, BUS_FUNCTION, SPI_RESP_DELAY_F1, CYW43_BACKPLANE_READ_PAD_LEN_BYTES) != 0) {
             break;
@@ -2082,7 +2087,7 @@ int cyw43_ll_wifi_join(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *ssid
         return -CYW43_EINVAL;
     }
 
-    CYW43_VDEBUG("Setting wsec=0x%lx\n", auth_type & 0xff);
+    CYW43_VDEBUG("Setting wsec=0x%lx\n", (unsigned long)auth_type & 0xff);
     cyw43_set_ioctl_u32(self, WLC_SET_WSEC, auth_type & 0xff, WWD_STA_INTERFACE);
 
     // supplicant variable
@@ -2117,7 +2122,7 @@ int cyw43_ll_wifi_join(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *ssid
     cyw43_set_ioctl_u32(self, WLC_SET_AUTH, 0, WWD_STA_INTERFACE);
 
     // set WPA auth mode
-    CYW43_VDEBUG("Setting wpa auth 0x%lx\n", wpa_auth);
+    CYW43_VDEBUG("Setting wpa auth 0x%lx\n", (unsigned long)wpa_auth);
     cyw43_set_ioctl_u32(self, WLC_SET_WPA_AUTH, wpa_auth, WWD_STA_INTERFACE);
 
     // allow relevant events through:
@@ -2319,7 +2324,7 @@ int cyw43_ll_gpio_get(cyw43_ll_t *self_in, int gpio_n, bool *gpio_en) {
     }
 
     *gpio_en = (cyw43_get_le32(buf) & (1 << gpio_n)) ? true : false;
-    CYW43_VDEBUG("cyw43_get_gpio %d=%d\n", gpio_n, gpio_en);
+    CYW43_VDEBUG("cyw43_get_gpio %d=%d\n", gpio_n, (int)gpio_en);
     return 0;
 }
 
