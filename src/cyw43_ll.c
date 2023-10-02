@@ -1405,7 +1405,7 @@ static void cyw43_clm_load(cyw43_int_t *self, const uint8_t *clm_ptr, size_t clm
         #pragma GCC diagnostic pop
         memcpy(buf + 20, clm_ptr + off, len);
 
-        CYW43_VDEBUG("clm data send %lu/%zu\n", off + len, clm_len);
+        CYW43_VDEBUG("clm data send %u/%u\n", (int)(off + len), (int)clm_len);
 
         // Send data aligned to 8 bytes; padding comes from junk at end of buf
         cyw43_do_ioctl(self, SDPCM_SET, WLC_SET_VAR, ALIGN_UINT(20 + len, 8), buf, WWD_STA_INTERFACE);
