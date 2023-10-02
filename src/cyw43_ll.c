@@ -1274,6 +1274,7 @@ static void device_core_is_up(cyw43_int_t *self, int core_id) {
     CYW43_VDEBUG("core %d IS up\n", core_id);
 }
 
+#if USE_KSO
 // KSO mode (keep SDIO on)
 static void cyw43_kso_set(cyw43_int_t *self, int value) {
     uint8_t write_value = 0;
@@ -1316,6 +1317,7 @@ static void cyw43_kso_set(cyw43_int_t *self, int value) {
 
     CYW43_WARN("cyw43_kso_set(%d): failed\n", value);
 }
+#endif
 
 static void cyw43_ll_bus_sleep_helper(cyw43_int_t *self, bool can_sleep) {
     #if USE_KSO
