@@ -1181,7 +1181,10 @@ void cyw43_ll_process_packets(cyw43_ll_t *self_in) {
 // will read the ioctl from buf
 // will then write the result (max len bytes) into buf
 static int cyw43_do_ioctl(cyw43_int_t *self, uint32_t kind, uint32_t cmd, size_t len, uint8_t *buf, uint32_t iface) {
-    cyw43_send_ioctl(self, kind, cmd, len, buf, iface);
+    int ret = cyw43_send_ioctl(self, kind, cmd, len, buf, iface);
+    if (ret != 0) {
+        return ret;
+    }
     uint32_t start = cyw43_hal_ticks_us();
     while (cyw43_hal_ticks_us() - start < CYW43_IOCTL_TIMEOUT_US) {
         size_t res_len;
@@ -1654,13 +1657,13 @@ alp_set:
     cyw43_write_backplane(self, SOCSRAM_BANKX_INDEX, 4, 0x3);
     cyw43_write_backplane(self, SOCSRAM_BANKX_PDA, 4, 0);
 
-    // Take firmware from the address space
-    cyw43_download_resource(self, 0x00000000, CYW43_WIFI_FW_LEN, 0, fw_data);
-    /*
-    // Take firmware from storage block device
-    cyw43_download_resource(self, 0x00000000, CYW43_WIFI_FW_LEN, 1, 0x100 + 0x1000);
-    */
+    // Download the main WiFi firmware blob to the 43xx device.
+    int ret = cyw43_download_resource(self, 0x00000000, CYW43_WIFI_FW_LEN, 0, fw_data);
+    if (ret != 0) {
+        return ret;
+    }
 
+    // Download the NVRAM to the 43xx device.
     size_t wifi_nvram_len = ALIGN_UINT(sizeof(wifi_nvram_4343), 64);
     const uint8_t *wifi_nvram_data = wifi_nvram_4343;
     cyw43_download_resource(self, CYW43_RAM_SIZE - 4 - wifi_nvram_len, wifi_nvram_len, 0, (uintptr_t)wifi_nvram_data);
