@@ -42,8 +42,10 @@ function ci_tests_setup {
 
 function ci_tests_build {
     make $MAKEOPTS -C tests/sdio
+    make $MAKEOPTS -C tests/debug_print
 }
 
 function ci_tests_run {
     make $MAKEOPTS -C tests/sdio test
+    make $MAKEOPTS -C tests/debug_print test
 }
