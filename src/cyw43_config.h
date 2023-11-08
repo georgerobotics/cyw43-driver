@@ -63,10 +63,15 @@
 #define CYW43_ENABLE_BLUETOOTH (0)
 #endif
 
+struct cyw43_firmware_data {
+    uint32_t size;
+    uint32_t wifi_fw_len;
+    uintptr_t addr;
+};
 // This include should define:
 // - CYW43_WIFI_FW_LEN
 // - CYW43_CLM_LEN
-// - const uintptr_t fw_data
+// - const struct cyw43_firmware_data fw_data
 #ifndef CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE
 #if CYW43_ENABLE_BLUETOOTH
 #define CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE "firmware/wb43439A0_7_95_49_00_combined.h"

@@ -1,4 +1,4 @@
-static const unsigned char w4343WA1_7_45_98_50_combined[] CYW43_RESOURCE_ATTRIBUTE = {
+__attribute__((section(".fw_cyw43.blob"))) static const unsigned char w4343WA1_7_45_98_50_combined[] CYW43_RESOURCE_ATTRIBUTE = {
   0x00, 0x00, 0x00, 0x00, 0xb1, 0x21, 0x00, 0x00, 0xdd, 0x20, 0x00, 0x00,
   0xdd, 0x20, 0x00, 0x00, 0xdd, 0x20, 0x00, 0x00, 0xdd, 0x20, 0x00, 0x00,
   0xdd, 0x20, 0x00, 0x00, 0xdd, 0x20, 0x00, 0x00, 0xdd, 0x20, 0x00, 0x00,
@@ -32578,4 +32578,8 @@ static const unsigned char w4343WA1_7_45_98_50_combined[] CYW43_RESOURCE_ATTRIBU
 };
 #define CYW43_WIFI_FW_LEN (383110) // 7.45.98.50
 #define CYW43_CLM_LEN (7222)
-const uintptr_t fw_data = (uintptr_t)&w4343WA1_7_45_98_50_combined[0];
+__attribute__((section(".fw_cyw43.meta"))) const struct cyw43_firmware_data fw_data = {
+    .size = sizeof(w4343WA1_7_45_98_50_combined),
+    .wifi_fw_len = CYW43_WIFI_FW_LEN,
+    .addr = (uintptr_t)&w4343WA1_7_45_98_50_combined[0],
+};

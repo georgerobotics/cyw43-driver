@@ -1,4 +1,4 @@
-static const unsigned char wb43439A0_7_95_49_00_combined[] CYW43_RESOURCE_ATTRIBUTE = {
+__attribute__((section(".fw_cyw43.blob"))) static const unsigned char wb43439A0_7_95_49_00_combined[] CYW43_RESOURCE_ATTRIBUTE = {
   0x00, 0x00, 0x00, 0x00, 0x71, 0x14, 0x00, 0x00, 0x9d, 0x13, 0x00, 0x00,
   0x9d, 0x13, 0x00, 0x00, 0x9d, 0x13, 0x00, 0x00, 0x9d, 0x13, 0x00, 0x00,
   0x9d, 0x13, 0x00, 0x00, 0x9d, 0x13, 0x00, 0x00, 0x9d, 0x13, 0x00, 0x00,
@@ -19370,4 +19370,8 @@ static const unsigned char wb43439A0_7_95_49_00_combined[] CYW43_RESOURCE_ATTRIB
 };
 #define CYW43_WIFI_FW_LEN (231077) // bluetooth_firmware_jan2023/43439A0.bin
 #define CYW43_CLM_LEN (984) // launch_tuning/43439_raspberrypi_picow_v5_220624.clm_blob
-const uintptr_t fw_data = (uintptr_t)&wb43439A0_7_95_49_00_combined[0];
+__attribute__((section(".fw_cyw43.meta"))) const struct cyw43_firmware_data fw_data = {
+    .size = sizeof(wb43439A0_7_95_49_00_combined),
+    .wifi_fw_len = CYW43_WIFI_FW_LEN,
+    .addr = (uintptr_t)&wb43439A0_7_95_49_00_combined[0],
+};
