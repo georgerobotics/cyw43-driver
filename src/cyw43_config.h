@@ -36,6 +36,9 @@
  * \file
 */
 
+#ifndef _CYW43_CONFIG_H
+#define _CYW43_CONFIG_H
+
 // Import port-specific configuration file.
 #ifdef CYW43_CONFIG_FILE
 #include CYW43_CONFIG_FILE
@@ -170,4 +173,6 @@
 
 #ifndef CYW43_DEFAULT_IP_DNS
 #define CYW43_DEFAULT_IP_DNS LWIP_MAKEU32(8, 8, 8, 8)
+#endif
+
 #endif
