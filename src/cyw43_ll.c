@@ -1117,7 +1117,7 @@ static int cyw43_ll_sdpcm_poll_device(cyw43_int_t *self, size_t *len, uint8_t **
         bytes_pending = (bus_gspi_status >> 9) & 0x7FF;
         if (bytes_pending == 0 || bytes_pending > (LINK_MTU - GSPI_PACKET_OVERHEAD) ||
             bus_gspi_status & F2_F3_FIFO_RD_UNDERFLOW) {
-            CYW43_DEBUG("SPI invalid bytes pending %u\n", bytes_pending);
+            CYW43_DEBUG("SPI invalid bytes pending %lu\n", bytes_pending);
             cyw43_write_reg_u8(self, BACKPLANE_FUNCTION, SPI_FRAME_CONTROL, (1 << 0));
             self->had_successful_packet = false;
             return -1;
