@@ -54,9 +54,6 @@
 #include "cyw43_sdio.h"
 #endif
 
-#define CYW43_FLASH_BLOCK_SIZE (512)
-uint32_t storage_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blocks);
-
 struct pbuf;
 uint16_t pbuf_copy_partial(const struct pbuf *p, void *dataptr, uint16_t len, uint16_t offset);
 
@@ -357,36 +354,20 @@ static void cyw43_write_backplane(cyw43_int_t *self, uint32_t addr, size_t size,
     cyw43_set_backplane_window(self, CHIPCOMMON_BASE_ADDRESS);
 }
 
-static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_len, int from_storage, uintptr_t source) {
+static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_len, uintptr_t source) {
     // round up len to simplify download
     size_t len = (raw_len + 255) & ~255;
 
     CYW43_VDEBUG("writing %u bytes to 0x%x\n", (uint32_t)len, (uint32_t)addr);
 
     uint32_t block_size = CYW43_BUS_MAX_BLOCK_SIZE;
-    if (from_storage) {
-        // reused the spid_buf to copy the data (must be larger than 512 storage block size)
-        block_size = sizeof(self->spid_buf);
-        CYW43_DEBUG("data comes from external storage via buffer of size %u\n", (unsigned int)block_size);
-    }
 
     if (addr == 0) {
         // check that firmware is actually there
 
-        // get the last bit of the firmware
-        const uint8_t *b;
-        uint32_t fw_end;
-        if (from_storage) {
-            // get the last aligned-1024 bytes
-            uint32_t last_bl = (raw_len - 1) / CYW43_FLASH_BLOCK_SIZE;
-            storage_read_blocks(self->spid_buf, source + last_bl - 1, 2);
-            fw_end = raw_len - (last_bl - 1) * CYW43_FLASH_BLOCK_SIZE;
-            b = self->spid_buf;
-        } else {
-            // get the last 800 bytes
-            fw_end = 800;
-            b = (const uint8_t *)source + raw_len - fw_end;
-        }
+        // get the last bit of the firmware, the last 800 bytes
+        uint32_t fw_end = 800;
+        const uint8_t *b = (const uint8_t *)source + raw_len - fw_end;
 
         // get length of trailer
         fw_end -= 16; // skip DVID trailer
@@ -424,13 +405,7 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
         uint32_t dest_addr = addr + offset;
         assert(((dest_addr & BACKPLANE_ADDR_MASK) + sz) <= (BACKPLANE_ADDR_MASK + 1));
         cyw43_set_backplane_window(self, dest_addr);
-        const uint8_t *src;
-        if (from_storage) {
-            storage_read_blocks(self->spid_buf, source + offset / CYW43_FLASH_BLOCK_SIZE, block_size / CYW43_FLASH_BLOCK_SIZE);
-            src = self->spid_buf;
-        } else {
-            src = (const uint8_t *)source + offset;
-        }
+        const uint8_t *src = (const uint8_t *)source + offset;
         dest_addr &= BACKPLANE_ADDR_MASK;
         #if CYW43_USE_SPI
         dest_addr |= SBSDIO_SB_ACCESS_2_4B_FLAG;
@@ -450,7 +425,7 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
 
     #if VERIFY_FIRMWARE_DOWNLOAD
     // Verification of 380k takes about 40ms using a 512-byte transfer size
-    const size_t verify_block_size = CYW43_BUS_MAX_BLOCK_SIZE; // so we can verify against storage
+    const size_t verify_block_size = CYW43_BUS_MAX_BLOCK_SIZE;
     uint8_t buf[verify_block_size];
     t_start = cyw43_hal_ticks_us();
     for (size_t offset = 0; offset < len; offset += verify_block_size) {
@@ -462,13 +437,7 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
         assert(((dest_addr & BACKPLANE_ADDR_MASK) + sz) <= (BACKPLANE_ADDR_MASK + 1));
         cyw43_set_backplane_window(self, dest_addr);
         cyw43_read_bytes(self, BACKPLANE_FUNCTION, dest_addr & BACKPLANE_ADDR_MASK, sz, buf);
-        const uint8_t *src;
-        if (from_storage) {
-            storage_read_blocks(self->spid_buf, source + offset / CYW43_FLASH_BLOCK_SIZE, verify_block_size / CYW43_FLASH_BLOCK_SIZE);
-            src = self->spid_buf;
-        } else {
-            src = (const uint8_t *)source + offset;
-        }
+        const uint8_t *src = (const uint8_t *)source + offset;
         if (memcmp(buf, src, sz) != 0) {
             CYW43_WARN("fail verify at address 0x%08x:\n", (unsigned int)dest_addr);
             cyw43_xxd(sz, src);
@@ -1660,7 +1629,7 @@ alp_set:
     cyw43_write_backplane(self, SOCSRAM_BANKX_PDA, 4, 0);
 
     // Download the main WiFi firmware blob to the 43xx device.
-    int ret = cyw43_download_resource(self, 0x00000000, CYW43_WIFI_FW_LEN, 0, fw_data);
+    int ret = cyw43_download_resource(self, 0x00000000, CYW43_WIFI_FW_LEN, fw_data);
     if (ret != 0) {
         return ret;
     }
@@ -1668,7 +1637,7 @@ alp_set:
     // Download the NVRAM to the 43xx device.
     size_t wifi_nvram_len = ALIGN_UINT(sizeof(wifi_nvram_4343), 64);
     const uint8_t *wifi_nvram_data = wifi_nvram_4343;
-    cyw43_download_resource(self, CYW43_RAM_SIZE - 4 - wifi_nvram_len, wifi_nvram_len, 0, (uintptr_t)wifi_nvram_data);
+    cyw43_download_resource(self, CYW43_RAM_SIZE - 4 - wifi_nvram_len, wifi_nvram_len, (uintptr_t)wifi_nvram_data);
     uint32_t sz = ((~(wifi_nvram_len / 4) & 0xffff) << 16) | (wifi_nvram_len / 4);
     cyw43_write_backplane(self, CYW43_RAM_SIZE - 4, 4, sz);
 
