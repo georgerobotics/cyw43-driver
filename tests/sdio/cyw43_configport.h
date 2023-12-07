@@ -7,6 +7,8 @@
 #define static_assert(expr, msg)            typedef int static_assert_##__LINE__[(expr) ? 1 : -1]
 #define CYW43_ARRAY_SIZE(a)                 (sizeof(a) / sizeof((a)[0]))
 
+#define CYW43_RESOURCE_VERIFY_DOWNLOAD      (1)
+
 #define CYW43_USE_SPI                       (0)
 #define CYW43_LWIP                          (0)
 
