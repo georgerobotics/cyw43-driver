@@ -72,6 +72,14 @@ extern bool enable_spi_packet_dumping;
 
 #define ALIGN_UINT(val, align) (((val) + (align) - 1) & ~((align) - 1))
 
+// Configure the padding needed for data sent to cyw43_write_bytes().
+// cyw43_read_bytes() also needs padding, but that's handled separately.
+#if CYW43_USE_SPI
+#define CYW43_WRITE_BYTES_PAD(len) ALIGN_UINT((len), 4)
+#else
+#define CYW43_WRITE_BYTES_PAD(len) ALIGN_UINT((len), 64)
+#endif
+
 #if CYW43_USE_STATS
 // Storage for some debug stats
 uint32_t cyw43_stats[CYW43_STAT_LAST];
@@ -380,9 +388,10 @@ static int cyw43_check_valid_chipset_firmware(cyw43_int_t *self, size_t len, uin
     return CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
 }
 
-static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_len, uintptr_t source) {
-    // round up len to simplify download
-    size_t len = (raw_len + 255) & ~255;
+static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t len, uintptr_t source) {
+    // The calls to cyw43_write_bytes() (and cyw43_read_bytes()) require data sizes that
+    // are aligned to a certain amount.
+    assert(CYW43_WRITE_BYTES_PAD(len) == len);
 
     CYW43_VDEBUG("writing %u bytes to 0x%x\n", (uint32_t)len, (uint32_t)addr);
 
@@ -597,13 +606,6 @@ struct sdpcm_header_t {
     uint8_t reserved[2];
 };
 
-// No padding here for SPI?
-#if CYW43_USE_SPI
-#define SDPCM_PAD(A) A
-#else
-#define SDPCM_PAD(A) (A + 63) & ~63
-#endif
-
 // buf must be writable and have:
 //  - SDPCM_HEADER_LEN bytes at the start for writing the headers
 //  - readable data at the end for padding to get to 64 byte alignment
@@ -682,7 +684,7 @@ static int cyw43_sdpcm_send_common(cyw43_int_t *self, uint32_t kind, size_t len,
     self->wwd_sdpcm_packet_transmit_sequence_number += 1;
 
     // padding is taken from junk at end of buffer
-    return cyw43_write_bytes(self, WLAN_FUNCTION, 0, SDPCM_PAD(size), buf);
+    return cyw43_write_bytes(self, WLAN_FUNCTION, 0, CYW43_WRITE_BYTES_PAD(size), buf);
 }
 
 struct ioctl_header_t {
@@ -1641,13 +1643,13 @@ alp_set:
     }
 
     // Download the main WiFi firmware blob to the 43xx device.
-    ret = cyw43_download_resource(self, 0x00000000, CYW43_WIFI_FW_LEN, fw_data);
+    ret = cyw43_download_resource(self, 0x00000000, CYW43_WRITE_BYTES_PAD(CYW43_WIFI_FW_LEN), fw_data);
     if (ret != 0) {
         return ret;
     }
 
     // Download the NVRAM to the 43xx device.
-    size_t wifi_nvram_len = ALIGN_UINT(sizeof(wifi_nvram_4343), 64);
+    size_t wifi_nvram_len = CYW43_WRITE_BYTES_PAD(sizeof(wifi_nvram_4343));
     const uint8_t *wifi_nvram_data = wifi_nvram_4343;
     cyw43_download_resource(self, CYW43_RAM_SIZE - 4 - wifi_nvram_len, wifi_nvram_len, (uintptr_t)wifi_nvram_data);
     uint32_t sz = ((~(wifi_nvram_len / 4) & 0xffff) << 16) | (wifi_nvram_len / 4);

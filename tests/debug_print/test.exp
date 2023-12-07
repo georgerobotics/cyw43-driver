@@ -68,7 +68,7 @@ cyw43_sdio_transfer(cmd=52, arg=92001600)
 cyw43_sdio_transfer_cmd53(write=1, block_size=4, arg=95802004, len=4)
 cyw43_sdio_transfer_cmd53(write=1, block_size=4, arg=95808804, len=4)
 Version: 7.95.49 (2271bb6 CY) CRC: b7a28ef3 Date: Mon 2021-11-29 22:50:27 PST Ucode Ver: 1043.2162 FWID 01-c51d9400
-writing 224256 bytes to 0x0
+writing 224192 bytes to 0x0
 cyw43_sdio_transfer(cmd=52, arg=92001800)
 cyw43_sdio_transfer_cmd53(write=1, block_size=64, arg=9c000100, len=16384)
 cyw43_sdio_transfer_cmd53(write=1, block_size=64, arg=9c800100, len=16384)
@@ -92,8 +92,8 @@ cyw43_sdio_transfer_cmd53(write=1, block_size=64, arg=9c800100, len=16384)
 cyw43_sdio_transfer(cmd=52, arg=92001603)
 cyw43_sdio_transfer(cmd=52, arg=92001400)
 cyw43_sdio_transfer_cmd53(write=1, block_size=64, arg=9c000100, len=16384)
-cyw43_sdio_transfer_cmd53(write=1, block_size=64, arg=9c8000b0, len=11264)
-done dnload; dt = 1 us; speed = 224256000 kbytes/sec
+cyw43_sdio_transfer_cmd53(write=1, block_size=64, arg=9c8000af, len=11200)
+done dnload; dt = 1 us; speed = 224192000 kbytes/sec
 cyw43_sdio_transfer(cmd=52, arg=92001600)
 cyw43_sdio_transfer_cmd53(write=0, block_size=64, arg=1c000100, len=16384)
 cyw43_sdio_transfer_cmd53(write=0, block_size=64, arg=1c800100, len=16384)
@@ -117,8 +117,8 @@ cyw43_sdio_transfer_cmd53(write=0, block_size=64, arg=1c800100, len=16384)
 cyw43_sdio_transfer(cmd=52, arg=92001603)
 cyw43_sdio_transfer(cmd=52, arg=92001400)
 cyw43_sdio_transfer_cmd53(write=0, block_size=64, arg=1c000100, len=16384)
-cyw43_sdio_transfer_cmd53(write=0, block_size=64, arg=1c8000b0, len=11264)
-done verify; dt = 1 us; speed = 224256000 kbytes/sec
+cyw43_sdio_transfer_cmd53(write=0, block_size=64, arg=1c8000af, len=11200)
+done verify; dt = 1 us; speed = 224192000 kbytes/sec
 writing 768 bytes to 0x7fcfc
 cyw43_sdio_transfer(cmd=52, arg=92001607)
 cyw43_sdio_transfer(cmd=52, arg=92001480)
