@@ -67,8 +67,8 @@ cyw43_sdio_transfer(cmd=52, arg=10881000)
 cyw43_sdio_transfer(cmd=52, arg=92001600)
 cyw43_sdio_transfer_cmd53(write=1, block_size=4, arg=95802004, len=4)
 cyw43_sdio_transfer_cmd53(write=1, block_size=4, arg=95808804, len=4)
-writing 224256 bytes to 0x0
 Version: 7.95.49 (2271bb6 CY) CRC: b7a28ef3 Date: Mon 2021-11-29 22:50:27 PST Ucode Ver: 1043.2162 FWID 01-c51d9400
+writing 224256 bytes to 0x0
 cyw43_sdio_transfer(cmd=52, arg=92001800)
 cyw43_sdio_transfer_cmd53(write=1, block_size=64, arg=9c000100, len=16384)
 cyw43_sdio_transfer_cmd53(write=1, block_size=64, arg=9c800100, len=16384)

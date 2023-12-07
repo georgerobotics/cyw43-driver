@@ -356,6 +356,30 @@ static void cyw43_write_backplane(cyw43_int_t *self, uint32_t addr, size_t size,
     cyw43_set_backplane_window(self, CHIPCOMMON_BASE_ADDRESS);
 }
 
+static int cyw43_check_valid_chipset_firmware(cyw43_int_t *self, size_t len, uintptr_t source) {
+    // get the last bit of the firmware, the last 800 bytes
+    uint32_t fw_end = 800;
+    const uint8_t *b = (const uint8_t *)source + len - fw_end;
+
+    // get length of trailer
+    fw_end -= 16; // skip DVID trailer
+    uint32_t trail_len = b[fw_end - 2] | b[fw_end - 1] << 8;
+
+    if (trail_len < 500 && b[fw_end - 3] == '\0') {
+        for (int i = 80; i < (int)trail_len; ++i) {
+            if (strncmp((const char *)&b[fw_end - 3 - i], "Version: ", 9) == 0) {
+                // valid chipset firmware found
+                // print wifi firmware version info
+                CYW43_DEBUG("%s\n", &b[fw_end - 3 - i]);
+                return 0;
+            }
+        }
+    }
+
+    CYW43_WARN("could not find valid firmware\n");
+    return CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
+}
+
 static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_len, uintptr_t source) {
     // round up len to simplify download
     size_t len = (raw_len + 255) & ~255;
@@ -363,35 +387,6 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
     CYW43_VDEBUG("writing %u bytes to 0x%x\n", (uint32_t)len, (uint32_t)addr);
 
     uint32_t block_size = CYW43_BUS_MAX_BLOCK_SIZE;
-
-    if (addr == 0) {
-        // check that firmware is actually there
-
-        // get the last bit of the firmware, the last 800 bytes
-        uint32_t fw_end = 800;
-        const uint8_t *b = (const uint8_t *)source + raw_len - fw_end;
-
-        // get length of trailer
-        fw_end -= 16; // skip DVID trailer
-        uint32_t trail_len = b[fw_end - 2] | b[fw_end - 1] << 8;
-        int found = -1;
-        if (trail_len < 500 && b[fw_end - 3] == '\0') {
-            for (int i = 80; i < (int)trail_len; ++i) {
-                if (strncmp((const char *)&b[fw_end - 3 - i], "Version: ", 9) == 0) {
-                    found = i;
-                    break;
-                }
-            }
-        }
-
-        if (found == -1) {
-            CYW43_WARN("could not find valid firmware\n");
-            return CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
-        }
-
-        // print wifi firmware version info
-        CYW43_DEBUG("%s\n", &b[fw_end - 3 - found]);
-    }
 
     #if CYW43_VERBOSE_DEBUG
     uint32_t t_start = cyw43_hal_ticks_us();
@@ -1639,8 +1634,14 @@ alp_set:
     cyw43_write_backplane(self, SOCSRAM_BANKX_INDEX, 4, 0x3);
     cyw43_write_backplane(self, SOCSRAM_BANKX_PDA, 4, 0);
 
+    // Check that valid chipset firmware exists at the given source address.
+    int ret = cyw43_check_valid_chipset_firmware(self, CYW43_WIFI_FW_LEN, fw_data);
+    if (ret != 0) {
+        return ret;
+    }
+
     // Download the main WiFi firmware blob to the 43xx device.
-    int ret = cyw43_download_resource(self, 0x00000000, CYW43_WIFI_FW_LEN, fw_data);
+    ret = cyw43_download_resource(self, 0x00000000, CYW43_WIFI_FW_LEN, fw_data);
     if (ret != 0) {
         return ret;
     }
