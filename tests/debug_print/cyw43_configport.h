@@ -40,11 +40,13 @@
 #define CYW43_HAL_MAC_WLAN0                 (0)
 
 static inline unsigned int cyw43_hal_ticks_us(void) {
-    return 0;
+    static unsigned int t = 0;
+    return t++;
 }
 
 static inline unsigned int cyw43_hal_ticks_ms(void) {
-    return 0;
+    static unsigned int t = 0;
+    return t++;
 }
 
 static inline void cyw43_delay_us(unsigned int us) {
