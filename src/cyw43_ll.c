@@ -69,7 +69,6 @@ extern bool enable_spi_packet_dumping;
 #include CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE
 
 #define CYW43_CLM_ADDR (fw_data + ALIGN_UINT(CYW43_WIFI_FW_LEN, 512))
-#define VERIFY_FIRMWARE_DOWNLOAD (0)
 
 #define ALIGN_UINT(val, align) (((val) + (align) - 1) & ~((align) - 1))
 
@@ -94,10 +93,13 @@ static inline void cyw43_put_le32(uint8_t *buf, uint32_t x) {
     buf[3] = x >> 24;
 }
 
-#if VERIFY_FIRMWARE_DOWNLOAD
+#if CYW43_RESOURCE_VERIFY_DOWNLOAD
 static void cyw43_xxd(size_t len, const uint8_t *buf) {
     for (int i = 0; i < len; ++i) {
         CYW43_PRINTF(" %02x", buf[i]);
+        if (i % 32 == 31) {
+            CYW43_PRINTF("\n");
+        }
     }
     CYW43_PRINTF("\n");
 }
@@ -391,7 +393,7 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
         CYW43_DEBUG("%s\n", &b[fw_end - 3 - found]);
     }
 
-    #if VERIFY_FIRMWARE_DOWNLOAD
+    #if CYW43_VERBOSE_DEBUG
     uint32_t t_start = cyw43_hal_ticks_us();
     #endif
 
@@ -417,17 +419,22 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
         }
     }
 
-    #if VERIFY_FIRMWARE_DOWNLOAD
+    #if CYW43_VERBOSE_DEBUG
     uint32_t t_end = cyw43_hal_ticks_us();
     uint32_t dt = t_end - t_start;
     CYW43_VDEBUG("done dnload; dt = %u us; speed = %u kbytes/sec\n", (unsigned int)dt, (unsigned int)(len * 1000 / dt));
     #endif
 
-    #if VERIFY_FIRMWARE_DOWNLOAD
+    #if CYW43_RESOURCE_VERIFY_DOWNLOAD
+
     // Verification of 380k takes about 40ms using a 512-byte transfer size
     const size_t verify_block_size = CYW43_BUS_MAX_BLOCK_SIZE;
     uint8_t buf[verify_block_size];
+
+    #if CYW43_VERBOSE_DEBUG
     t_start = cyw43_hal_ticks_us();
+    #endif
+
     for (size_t offset = 0; offset < len; offset += verify_block_size) {
         size_t sz = verify_block_size;
         if (offset + sz > len) {
@@ -445,10 +452,14 @@ static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t raw_
             return CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
         }
     }
+
+    #if CYW43_VERBOSE_DEBUG
     t_end = cyw43_hal_ticks_us();
     dt = t_end - t_start;
-    CYW43_DEBUG("done verify; dt = %u us; speed = %u kbytes/sec\n", (unsigned int)dt, (unsigned int)(len * 1000 / dt));
+    CYW43_VDEBUG("done verify; dt = %u us; speed = %u kbytes/sec\n", (unsigned int)dt, (unsigned int)(len * 1000 / dt));
     #endif
+
+    #endif // CYW43_RESOURCE_VERIFY_DOWNLOAD
 
     return 0;
 }

@@ -93,10 +93,12 @@ cyw43_sdio_transfer(cmd=52, arg=92001603)
 cyw43_sdio_transfer(cmd=52, arg=92001400)
 cyw43_sdio_transfer_cmd53(write=1, block_size=64, arg=9c000100, len=16384)
 cyw43_sdio_transfer_cmd53(write=1, block_size=64, arg=9c8000b0, len=11264)
+done dnload; dt = 1 us; speed = 224256000 kbytes/sec
 writing 768 bytes to 0x7fcfc
 cyw43_sdio_transfer(cmd=52, arg=92001607)
 cyw43_sdio_transfer(cmd=52, arg=92001480)
 cyw43_sdio_transfer_cmd53(write=1, block_size=64, arg=9cf9f80c, len=768)
+done dnload; dt = 1 us; speed = 768000 kbytes/sec
 cyw43_sdio_transfer_cmd53(write=1, block_size=4, arg=95fff804, len=4)
 cyw43_sdio_transfer(cmd=52, arg=92001818)
 cyw43_sdio_transfer(cmd=52, arg=92001600)
