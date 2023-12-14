@@ -554,12 +554,15 @@ void cyw43_wifi_set_up(cyw43_t *self, int itf, bool up, uint32_t country) {
         }
         if (itf == CYW43_ITF_AP) {
             cyw43_wifi_ap_init(self);
-            cyw43_wifi_ap_set_up(self, true);
         }
         if ((self->itf_state & (1 << itf)) == 0) {
             cyw43_cb_tcpip_deinit(self, itf);
             cyw43_cb_tcpip_init(self, itf);
             self->itf_state |= 1 << itf;
+        }
+        if (itf == CYW43_ITF_AP) {
+            // Avoid a race by bringing the AP link up after the interface
+            cyw43_wifi_ap_set_up(self, true);
         }
     } else {
         if (itf == CYW43_ITF_AP) {
