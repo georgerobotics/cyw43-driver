@@ -746,7 +746,7 @@ static int cyw43_send_ioctl(cyw43_int_t *self, uint32_t kind, uint32_t cmd, size
     header->status = 0;
 
     // copy in payload
-    memcpy(self->spid_buf + SDPCM_HEADER_LEN + 16, buf, len);
+    memmove(self->spid_buf + SDPCM_HEADER_LEN + 16, buf, len);
 
     // do transfer
     CYW43_VDEBUG("Sending cmd %s (%u) len %u flags %u status %u\n", ioctl_cmd_name(header->cmd), header->cmd, header->len, header->flags, header->status);
@@ -783,7 +783,7 @@ int cyw43_ll_send_ethernet(cyw43_ll_t *self_in, int itf, size_t len, const void 
     if (is_pbuf) {
         pbuf_copy_partial((const struct pbuf *)buf, self->spid_buf + SDPCM_HEADER_LEN + 6, len, 0);
     } else {
-        memcpy(self->spid_buf + SDPCM_HEADER_LEN + 6, buf, len);
+        memmove(self->spid_buf + SDPCM_HEADER_LEN + 6, buf, len);
     }
 
     // do transfer
