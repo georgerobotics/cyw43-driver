@@ -51,7 +51,7 @@
 #if CYW43_LWIP
 
 #if CYW43_NETUTILS
-STATIC void cyw43_ethernet_trace(cyw43_t *self, struct netif *netif, size_t len, const void *data, unsigned int flags) {
+static void cyw43_ethernet_trace(cyw43_t *self, struct netif *netif, size_t len, const void *data, unsigned int flags) {
     bool is_tx = flags & NETUTILS_TRACE_IS_TX;
     if ((is_tx && (self->trace_flags & CYW43_TRACE_ETH_TX))
         || (!is_tx && (self->trace_flags & CYW43_TRACE_ETH_RX))) {
@@ -84,7 +84,7 @@ STATIC void cyw43_ethernet_trace(cyw43_t *self, struct netif *netif, size_t len,
 }
 #endif
 
-STATIC err_t cyw43_netif_output(struct netif *netif, struct pbuf *p) {
+static err_t cyw43_netif_output(struct netif *netif, struct pbuf *p) {
     cyw43_t *self = netif->state;
     #if CYW43_NETUTILS
     if (self->trace_flags != 0) {
@@ -102,7 +102,7 @@ STATIC err_t cyw43_netif_output(struct netif *netif, struct pbuf *p) {
 }
 
 #if LWIP_IGMP
-STATIC err_t cyw43_netif_update_igmp_mac_filter(struct netif *netif, const ip4_addr_t *group, enum netif_mac_filter_action action) {
+static err_t cyw43_netif_update_igmp_mac_filter(struct netif *netif, const ip4_addr_t *group, enum netif_mac_filter_action action) {
     cyw43_t *self = netif->state;
     uint8_t mac[] = { 0x01, 0x00, 0x5e, ip4_addr2(group) & 0x7F, ip4_addr3(group), ip4_addr4(group) };
 
@@ -119,7 +119,7 @@ STATIC err_t cyw43_netif_update_igmp_mac_filter(struct netif *netif, const ip4_a
 #endif
 
 #if LWIP_IPV6
-STATIC err_t cyw43_macfilter(struct netif *netif, const ip6_addr_t *group, enum netif_mac_filter_action action) {
+static err_t cyw43_macfilter(struct netif *netif, const ip6_addr_t *group, enum netif_mac_filter_action action) {
     uint8_t address[6] = { 0x33, 0x33 };
     memcpy(address + 2, group->addr + 3, 4);
     if (action != NETIF_ADD_MAC_FILTER && action != NETIF_DEL_MAC_FILTER) {
@@ -132,7 +132,7 @@ STATIC err_t cyw43_macfilter(struct netif *netif, const ip6_addr_t *group, enum 
 }
 #endif
 
-STATIC err_t cyw43_netif_init(struct netif *netif) {
+static err_t cyw43_netif_init(struct netif *netif) {
     netif->linkoutput = cyw43_netif_output;
     #if LWIP_IPV4
     netif->output = etharp_output;
