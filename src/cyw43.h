@@ -63,9 +63,9 @@
  * \anchor CYW43_VERSION_
  */
 //!\{
-#define CYW43_VERSION_MAJOR 0
-#define CYW43_VERSION_MINOR 9
-#define CYW43_VERSION_MICRO 0
+#define CYW43_VERSION_MAJOR 1
+#define CYW43_VERSION_MINOR 0
+#define CYW43_VERSION_MICRO 3
 //!\}
 
 /*!
