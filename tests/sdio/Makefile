@@ -1,3 +1,6 @@
+# Test with high optimisation level.
+CFLAGS += -O3
+
 SRC += \
 	main.c \
 	tests/mock_sdio.c \
