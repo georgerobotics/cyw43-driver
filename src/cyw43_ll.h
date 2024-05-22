@@ -277,6 +277,8 @@ void cyw43_ll_process_packets(cyw43_ll_t *self);
 int cyw43_ll_ioctl(cyw43_ll_t *self, uint32_t cmd, size_t len, uint8_t *buf, uint32_t iface);
 int cyw43_ll_send_ethernet(cyw43_ll_t *self, int itf, size_t len, const void *buf, bool is_pbuf);
 
+void cyw43_ll_set_monitor_mode(cyw43_ll_t *self, int value);
+
 int cyw43_ll_wifi_on(cyw43_ll_t *self, uint32_t country);
 int cyw43_ll_wifi_pm(cyw43_ll_t *self, uint32_t pm, uint32_t pm_sleep_ret, uint32_t li_bcn, uint32_t li_dtim, uint32_t li_assoc);
 int cyw43_ll_wifi_get_pm(cyw43_ll_t *self, uint32_t *pm, uint32_t *pm_sleep_ret, uint32_t *li_bcn, uint32_t *li_dtim, uint32_t *li_assoc);
