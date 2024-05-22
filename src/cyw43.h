@@ -682,16 +682,6 @@ void cyw43_bluetooth_hci_process(void);
 #endif
 
 /**
- * @brief Callback function to handle monitor mode data.
- *
- * @param cb_data   The driver state object.
- * @param itf       The interface identifier.
- * @param len       The length of the received data.
- * @param buf       A pointer to the buffer containing the received data.
- */
-void cyw43_cb_monitor_mode(void *cb_data, int itf, size_t len, const uint8_t *buf);
-
-/**
  * @brief Set the monitor mode of the CYW43 device.
  *
  * @param self  the driver state object. This should always be \c &cyw43_state

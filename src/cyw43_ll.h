@@ -320,6 +320,16 @@ uint32_t cyw43_ll_read_backplane_reg(cyw43_ll_t *self_in, uint32_t addr);
 int cyw43_ll_write_backplane_mem(cyw43_ll_t *self_in, uint32_t addr, uint32_t len, const uint8_t *buf);
 int cyw43_ll_read_backplane_mem(cyw43_ll_t *self_in, uint32_t addr, uint32_t len, uint8_t *buf);
 
+/**
+ * @brief Callback function to handle monitor mode data.
+ *
+ * @param cb_data   The driver state object.
+ * @param itf       The interface identifier.
+ * @param len       The length of the received data.
+ * @param buf       A pointer to the buffer containing the received data.
+ */
+void cyw43_cb_monitor_mode(void *cb_data, int itf, size_t len, const uint8_t *buf);
+
 //!\}
 
 #endif // CYW43_INCLUDED_CYW43_LL_H
