@@ -99,7 +99,7 @@
 #define CYW43_LINK_DOWN         (0)     ///< link is down
 #define CYW43_LINK_JOIN         (1)     ///< Connected to wifi
 #define CYW43_LINK_NOIP         (2)     ///< Connected to wifi, but no IP address
-#define CYW43_LINK_UP           (3)     ///< Connect to wifi with an IP address
+#define CYW43_LINK_UP           (3)     ///< Connected to wifi with an IP address
 #define CYW43_LINK_FAIL         (-1)    ///< Connection failed
 #define CYW43_LINK_NONET        (-2)    ///< No matching SSID found (could be out of range, or down)
 #define CYW43_LINK_BADAUTH      (-3)    ///< Authenticatation failure
