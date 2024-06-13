@@ -365,6 +365,7 @@ static void cyw43_write_backplane(cyw43_int_t *self, uint32_t addr, size_t size,
 }
 
 static int cyw43_check_valid_chipset_firmware(cyw43_int_t *self, size_t len, uintptr_t source) {
+    (void)self;
     // get the last bit of the firmware, the last 800 bytes
     uint32_t fw_end = 800;
     const uint8_t *b = (const uint8_t *)source + len - fw_end;
@@ -1094,7 +1095,7 @@ static int cyw43_ll_sdpcm_poll_device(cyw43_int_t *self, size_t *len, uint8_t **
         bytes_pending = (bus_gspi_status >> 9) & 0x7FF;
         if (bytes_pending == 0 || bytes_pending > (LINK_MTU - GSPI_PACKET_OVERHEAD) ||
             bus_gspi_status & F2_F3_FIFO_RD_UNDERFLOW) {
-            CYW43_DEBUG("SPI invalid bytes pending %u\n", bytes_pending);
+            CYW43_DEBUG("SPI invalid bytes pending %" PRIu32 "\n", bytes_pending);
             cyw43_write_reg_u8(self, BACKPLANE_FUNCTION, SPI_FRAME_CONTROL, (1 << 0));
             self->had_successful_packet = false;
             return -1;
