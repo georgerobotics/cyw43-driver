@@ -72,28 +72,34 @@ static int cyw43_sdio_cmd53(bool write, uint32_t fn, uint32_t addr, size_t len, 
 }
 
 int cyw43_read_bytes(cyw43_int_t *self, uint32_t fn, uint32_t addr, size_t len, uint8_t *buf) {
+    (void)self;
     return cyw43_sdio_cmd53(false, fn, addr, len, buf);
 }
 
 int cyw43_write_bytes(cyw43_int_t *self, uint32_t fn, uint32_t addr, size_t len, const uint8_t *buf) {
+    (void)self;
     return cyw43_sdio_cmd53(true, fn, addr, len, (uint8_t *)buf);
 }
 
 int cyw43_read_reg_u8(cyw43_int_t *self, uint32_t fn, uint32_t reg) {
+    (void)self;
     return cyw43_sdio_cmd52(false, fn, reg, 0);
 }
 
 uint32_t cyw43_read_reg_u32(cyw43_int_t *self, uint32_t fn, uint32_t reg) {
+    (void)self;
     uint32_t val = 0;
     cyw43_sdio_cmd53(false, fn, reg, 4, (void *)&val);
     return val;
 }
 
 int cyw43_write_reg_u8(cyw43_int_t *self, uint32_t function, uint32_t reg, uint32_t val) {
+    (void)self;
     return cyw43_sdio_cmd52(true, function, reg, val);
 }
 
 int cyw43_write_reg_u32(cyw43_int_t *self, uint32_t function, uint32_t reg, uint32_t val) {
+    (void)self;
     return cyw43_sdio_cmd53(true, function, reg, 4, (void *)&val);
 }
 

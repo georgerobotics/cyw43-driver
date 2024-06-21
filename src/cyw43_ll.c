@@ -103,7 +103,7 @@ static inline void cyw43_put_le32(uint8_t *buf, uint32_t x) {
 
 #if CYW43_RESOURCE_VERIFY_DOWNLOAD
 static void cyw43_xxd(size_t len, const uint8_t *buf) {
-    for (int i = 0; i < len; ++i) {
+    for (size_t i = 0; i < len; ++i) {
         CYW43_PRINTF(" %02x", buf[i]);
         if (i % 32 == 31) {
             CYW43_PRINTF("\n");
@@ -289,6 +289,8 @@ void cyw43_ll_deinit(cyw43_ll_t *self_in) {
     #if CYW43_USE_SPI
     cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
     cyw43_spi_deinit(self);
+    #else
+    (void)self_in;
     #endif
 }
 
