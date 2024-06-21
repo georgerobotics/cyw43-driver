@@ -52,31 +52,45 @@ static inline unsigned int cyw43_hal_ticks_ms(void) {
 }
 
 static inline void cyw43_delay_us(unsigned int us) {
+    (void)us;
 }
 
 static inline void cyw43_delay_ms(unsigned int ms) {
+    (void)ms;
 }
 
 static inline void cyw43_hal_get_mac(int interface, uint8_t mac[6]) {
+    (void)interface;
+    (void)mac;
 }
 
 static inline void cyw43_hal_pin_config(int pin, int mode, int pull, int alt) {
+    (void)pin;
+    (void)mode;
+    (void)pull;
+    (void)alt;
 }
 
 static inline void cyw43_hal_pin_config_irq_falling(int pin, int enable) {
+    (void)pin;
+    (void)enable;
 }
 
 static inline int cyw43_hal_pin_read(int pin) {
+    (void)pin;
     return 0;
 }
 
 static inline void cyw43_hal_pin_low(int pin) {
+    (void)pin;
 }
 
 static inline void cyw43_hal_pin_high(int pin) {
+    (void)pin;
 }
 
 static inline void cyw43_schedule_internal_poll_dispatch(void (*func)(void)) {
+    (void)func;
 }
 
 #endif // CYW43_INCLUDED_CONFIGPORT_H

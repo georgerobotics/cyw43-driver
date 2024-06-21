@@ -10,7 +10,7 @@ CC ?= cc
 CFLAGS += -I.
 CFLAGS += -I$(CYW43_TOP)
 CFLAGS += -std=c99
-CFLAGS += -Wall -Wpedantic -Werror
+CFLAGS += -Wall -Wextra -Wpedantic -Werror
 CFLAGS += -Wno-unused-local-typedefs
 CFLAGS += -m32
 

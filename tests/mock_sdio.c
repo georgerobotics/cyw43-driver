@@ -121,7 +121,6 @@ int cyw43_sdio_transfer_cmd53(bool write, uint32_t block_size, uint32_t arg, siz
         addr += sdio_backplane_cur_addr;
         if (addr < CHIPCOMMON_BASE_ADDRESS) {
             // Read/write backplane memory.
-            assert(addr >= BACKPLANE_BASE_ADDRESS);
             assert(addr + len <= BACKPLANE_BASE_ADDRESS + BACKPLANE_RAM_SIZE);
             if (write) {
                 memcpy(&backplane_ram[addr], buf, len);
