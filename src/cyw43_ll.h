@@ -163,6 +163,7 @@
 // Values used for STA and AP auth settings
 #define CYW43_WPA_AUTH_PSK (0x0004)
 #define CYW43_WPA2_AUTH_PSK (0x0080)
+#define CYW43_WPA3_AUTH_SAE_PSK (0x40000)
 
 /**
  * \name Authorization types
@@ -174,6 +175,8 @@
 #define CYW43_AUTH_WPA_TKIP_PSK   (0x00200002)  ///< WPA authorisation
 #define CYW43_AUTH_WPA2_AES_PSK   (0x00400004)  ///< WPA2 authorisation (preferred)
 #define CYW43_AUTH_WPA2_MIXED_PSK (0x00400006)  ///< WPA2/WPA mixed authorisation
+#define CYW43_AUTH_WPA3_SAE_AES_PSK  (0x01000004)   ///< WPA3 AES authorisation
+#define CYW43_AUTH_WPA3_WPA2_AES_PSK (0x01400004)   ///< WPA2/WPA3 authorisation
 //!\}
 
 /*!
