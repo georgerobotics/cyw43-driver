@@ -2235,25 +2235,52 @@ int cyw43_ll_wifi_ap_init(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *s
     // set security type
     cyw43_write_iovar_u32_u32(self, "bsscfg:wsec", WWD_AP_INTERFACE, auth, WWD_STA_INTERFACE);
 
+    // set management frame protection
+    uint32_t auth_mfp = MFP_NONE;
+    if (auth == CYW43_AUTH_WPA3_SAE_AES_PSK) {
+        auth_mfp = MFP_REQUIRED;
+    } else if (auth == CYW43_AUTH_WPA3_WPA2_AES_PSK) {
+        auth_mfp = MFP_CAPABLE;
+    }
+    cyw43_write_iovar_u32(self, "mfp", auth_mfp, WWD_AP_INTERFACE);
+
     if (auth == CYW43_AUTH_OPEN) {
         // nothing to do
     } else {
         // set WPA/WPA2 auth params
-        uint16_t val;
+        uint32_t val = 0;
         if (auth == CYW43_AUTH_WPA_TKIP_PSK) {
             val = CYW43_WPA_AUTH_PSK;
-        } else {
+        } else if (auth == CYW43_AUTH_WPA2_AES_PSK || auth == CYW43_AUTH_WPA2_MIXED_PSK) {
             val = CYW43_WPA_AUTH_PSK | CYW43_WPA2_AUTH_PSK;
+        } else if (auth == CYW43_AUTH_WPA3_SAE_AES_PSK) {
+            val = CYW43_WPA3_AUTH_SAE_PSK;
+        } else if (auth == CYW43_AUTH_WPA3_WPA2_AES_PSK) {
+            val = CYW43_WPA3_AUTH_SAE_PSK | CYW43_WPA2_AUTH_PSK;
         }
+        assert(val);
         cyw43_write_iovar_u32_u32(self, "bsscfg:wpa_auth", WWD_AP_INTERFACE, val, WWD_STA_INTERFACE);
 
         // set password
-        cyw43_put_le16(buf, key_len);
-        cyw43_put_le16(buf + 2, 1);
-        memset(buf + 4, 0, 64);
-        memcpy(buf + 4, key, key_len);
-        cyw43_delay_ms(2); // WICED has this
-        cyw43_do_ioctl(self, SDPCM_SET, WLC_SET_WSEC_PMK, 2 + 2 + 64, buf, WWD_AP_INTERFACE);
+        if (val & CYW43_WPA3_AUTH_SAE_PSK) {
+            cyw43_put_le16(buf, key_len);
+            memset(buf + 2, 0, 128);
+            memcpy(buf + 2, key, key_len);
+            cyw43_delay_ms(2); // Delay required to allow radio firmware to be ready to receive PMK and avoid intermittent failure
+            cyw43_write_iovar_n(self, "sae_password", 2 + 128, buf, WWD_AP_INTERFACE);
+        }
+        if (val & (CYW43_WPA_AUTH_PSK | CYW43_WPA2_AUTH_PSK)) {
+            cyw43_put_le16(buf, key_len);
+            cyw43_put_le16(buf + 2, 1);
+            memset(buf + 4, 0, 64);
+            memcpy(buf + 4, key, key_len);
+            cyw43_delay_ms(2); // WICED has this
+            cyw43_do_ioctl(self, SDPCM_SET, WLC_SET_WSEC_PMK, 2 + 2 + 64, buf, WWD_AP_INTERFACE);
+        }
+    }
+
+    if (auth == CYW43_AUTH_WPA3_SAE_AES_PSK || auth == CYW43_AUTH_WPA3_WPA2_AES_PSK) {
+        cyw43_write_iovar_u32(self, "sae_max_pwe_loop", WWD_AP_INTERFACE, 5);
     }
 
     // set GMode to auto (value of 1)
