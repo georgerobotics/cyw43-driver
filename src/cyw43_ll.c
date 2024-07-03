@@ -1114,7 +1114,7 @@ static int cyw43_ll_sdpcm_poll_device(cyw43_int_t *self, size_t *len, uint8_t **
     }
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wcast-align"
-    uint16_t *hdr = (__uint16_t *)self->spid_buf;
+    uint16_t *hdr = (uint16_t *)self->spid_buf;
     #pragma GCC diagnostic pop
     if (hdr[0] == 0 && hdr[1] == 0) {
         // no packets
