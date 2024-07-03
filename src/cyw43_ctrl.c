@@ -77,14 +77,6 @@ static void cyw43_poll_func(void);
 static void cyw43_wifi_ap_init(cyw43_t *self);
 static void cyw43_wifi_ap_set_up(cyw43_t *self, bool up);
 
-static inline uint32_t cyw43_get_be16(const uint8_t *buf) {
-    return buf[0] << 8 | buf[1];
-}
-
-static inline uint32_t cyw43_get_be32(const uint8_t *buf) {
-    return buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
-}
-
 /*******************************************************************************/
 // Initialisation and polling
 
