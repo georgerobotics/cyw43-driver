@@ -49,3 +49,20 @@ function ci_tests_run {
     make $MAKEOPTS -C tests/sdio test
     make $MAKEOPTS -C tests/debug_print test
 }
+
+########################################################################################
+# tests with clang
+
+function ci_tests_clang_setup {
+    sudo apt-get install clang gcc-multilib
+}
+
+function ci_tests_clang_build {
+    make $MAKEOPTS CC=clang -C tests/sdio
+    make $MAKEOPTS CC=clang -C tests/debug_print
+}
+
+function ci_tests_clang_run {
+    make $MAKEOPTS CC=clang -C tests/sdio test
+    make $MAKEOPTS CC=clang -C tests/debug_print test
+}
