@@ -276,6 +276,15 @@ static void cyw43_xxd(size_t len, const uint8_t *buf) {
 #define MFP_CAPABLE 1
 #define MFP_REQUIRED 2
 
+// Values used for STA and AP auth settings
+#define CYW43_WPA_AUTH_PSK (0x0004)
+#define CYW43_WPA2_AUTH_PSK (0x0080)
+#define CYW43_WPA3_AUTH_SAE_PSK (0x40000)
+
+// Max password length
+#define CYW43_WPA_MAX_PASSWORD_LEN 64
+#define CYW43_WPA_SAE_MAX_PASSWORD_LEN 128
+
 static int cyw43_ll_sdpcm_poll_device(cyw43_int_t *self, size_t *len, uint8_t **buf);
 static void cyw43_write_iovar_n(cyw43_int_t *self, const char *var, size_t len, const void *buf, uint32_t iface);
 
@@ -2065,7 +2074,7 @@ int cyw43_ll_wifi_scan(cyw43_ll_t *self_in, cyw43_wifi_scan_options_t *opts) {
 int cyw43_ll_wifi_join(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *ssid, size_t key_len, const uint8_t *key, uint32_t auth_type, const uint8_t *bssid, uint32_t channel) {
     cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
 
-    uint8_t buf[2 + 128];
+    uint8_t buf[2 + CYW43_WPA_SAE_MAX_PASSWORD_LEN];
 
     cyw43_write_iovar_u32(self, "ampdu_ba_wsize", 8, WWD_STA_INTERFACE);
 
@@ -2080,6 +2089,13 @@ int cyw43_ll_wifi_join(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *ssid
         wpa_auth = CYW43_WPA3_AUTH_SAE_PSK;
     } else {
         // Unsupported auth_type (security) value.
+        return -CYW43_EINVAL;
+    }
+
+    // Check key length
+    if (auth_type != CYW43_AUTH_OPEN && auth_type != CYW43_AUTH_WPA3_SAE_AES_PSK && key_len > CYW43_WPA_MAX_PASSWORD_LEN) {
+        return -CYW43_EINVAL;
+    } else if (auth_type == CYW43_AUTH_WPA3_SAE_AES_PSK && key_len > CYW43_WPA_SAE_MAX_PASSWORD_LEN) {
         return -CYW43_EINVAL;
     }
 
@@ -2106,15 +2122,15 @@ int cyw43_ll_wifi_join(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *ssid
         cyw43_delay_ms(2); // Delay required to allow radio firmware to be ready to receive PMK and avoid intermittent failure
 
         CYW43_VDEBUG("Setting wsec_pmk %d\n", key_len);
-        cyw43_do_ioctl(self, SDPCM_SET, WLC_SET_WSEC_PMK, 68, buf, WWD_STA_INTERFACE); // 68, see wsec_pmk_t
+        cyw43_do_ioctl(self, SDPCM_SET, WLC_SET_WSEC_PMK, 4 + CYW43_WPA_MAX_PASSWORD_LEN, buf, WWD_STA_INTERFACE); // 68, see wsec_pmk_t
     }
 
     if (wpa_auth == CYW43_WPA3_AUTH_SAE_PSK) {
-        memset(buf, 0, 128 + 2);
+        memset(buf, 0, 2 + CYW43_WPA_SAE_MAX_PASSWORD_LEN);
         cyw43_put_le16(buf, key_len);
         memcpy(buf + 2, key, key_len);
         cyw43_delay_ms(2); // Delay required to allow radio firmware to be ready to receive PMK and avoid intermittent failure
-        cyw43_write_iovar_n(self, "sae_password", 2 + 128, buf, WWD_STA_INTERFACE);
+        cyw43_write_iovar_n(self, "sae_password", 2 + CYW43_WPA_SAE_MAX_PASSWORD_LEN, buf, WWD_STA_INTERFACE);
     }
 
     // set infrastructure mode
@@ -2219,6 +2235,13 @@ int cyw43_ll_wifi_ap_init(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *s
         return 0;
     }
 
+    // Check key length
+    if (auth != CYW43_AUTH_OPEN && auth != CYW43_AUTH_WPA3_SAE_AES_PSK && key_len > CYW43_WPA_MAX_PASSWORD_LEN) {
+        return -CYW43_EINVAL;
+    } else if (auth == CYW43_AUTH_WPA3_SAE_AES_PSK && key_len > CYW43_WPA_SAE_MAX_PASSWORD_LEN) {
+        return -CYW43_EINVAL;
+    }
+
     // set the AMPDU parameter for AP (window size = 2)
     cyw43_write_iovar_u32(self, "ampdu_ba_wsize", 2, WWD_STA_INTERFACE);
 
@@ -2264,18 +2287,18 @@ int cyw43_ll_wifi_ap_init(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *s
         // set password
         if (val & CYW43_WPA3_AUTH_SAE_PSK) {
             cyw43_put_le16(buf, key_len);
-            memset(buf + 2, 0, 128);
+            memset(buf + 2, 0, CYW43_WPA_SAE_MAX_PASSWORD_LEN);
             memcpy(buf + 2, key, key_len);
             cyw43_delay_ms(2); // Delay required to allow radio firmware to be ready to receive PMK and avoid intermittent failure
-            cyw43_write_iovar_n(self, "sae_password", 2 + 128, buf, WWD_AP_INTERFACE);
+            cyw43_write_iovar_n(self, "sae_password", 2 + CYW43_WPA_SAE_MAX_PASSWORD_LEN, buf, WWD_AP_INTERFACE);
         }
         if (val & (CYW43_WPA_AUTH_PSK | CYW43_WPA2_AUTH_PSK)) {
             cyw43_put_le16(buf, key_len);
             cyw43_put_le16(buf + 2, 1);
-            memset(buf + 4, 0, 64);
+            memset(buf + 4, 0, CYW43_WPA_MAX_PASSWORD_LEN);
             memcpy(buf + 4, key, key_len);
             cyw43_delay_ms(2); // WICED has this
-            cyw43_do_ioctl(self, SDPCM_SET, WLC_SET_WSEC_PMK, 2 + 2 + 64, buf, WWD_AP_INTERFACE);
+            cyw43_do_ioctl(self, SDPCM_SET, WLC_SET_WSEC_PMK, 2 + 2 + CYW43_WPA_MAX_PASSWORD_LEN, buf, WWD_AP_INTERFACE);
         }
     }
 

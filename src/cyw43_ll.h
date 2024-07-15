@@ -160,11 +160,6 @@
 #define CYW43_REASON_SUP_DEAUTH             (14)    // received FC_DEAUTH
 #define CYW43_REASON_SUP_WPA_PSK_TMO        (15)    // WPA PSK 4-way handshake timeout
 
-// Values used for STA and AP auth settings
-#define CYW43_WPA_AUTH_PSK (0x0004)
-#define CYW43_WPA2_AUTH_PSK (0x0080)
-#define CYW43_WPA3_AUTH_SAE_PSK (0x40000)
-
 /**
  * \name Authorization types
  * \brief Used when setting up an access point, or connecting to an access point
