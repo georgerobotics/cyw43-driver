@@ -77,6 +77,13 @@
 #define CYW43_WIFI_NVRAM_INCLUDE_FILE "firmware/wifi_nvram_43439.h"
 #endif
 
+// This include should define:
+// - CYW43_BT_FW_LEN
+// - const uintptr_t bt_fw_data
+#ifndef CYW43_BT_FIRMWARE_INCLUDE_FILE
+#define CYW43_BT_FIRMWARE_INCLUDE_FILE "firmware/cyw43_btfw_4343A1.h"
+#endif
+
 // This should be defined by the port if needed, to override the default
 // alignment, or add more attributes, for the firmware and NVRAM resources.
 #ifndef CYW43_RESOURCE_ATTRIBUTE
