@@ -251,7 +251,8 @@ void cyw43_cb_tcpip_deinit(cyw43_t *self, int itf) {
         dhcp_server_deinit(&self->dhcp_server);
         #endif
     }
-    for (struct netif *netif = netif_list; netif != NULL; netif = netif->next) {
+    struct netif *netif;
+    NETIF_FOREACH(netif) {
         if (netif == n) {
             netif_remove(netif);
             #if LWIP_IPV4
