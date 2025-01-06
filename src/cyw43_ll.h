@@ -75,6 +75,7 @@
 #define CYW43_EV_LINK                   (16)
 #define CYW43_EV_PRUNE                  (23)
 #define CYW43_EV_PSK_SUP                (46)
+#define CYW43_EV_ICV_ERROR              (49)
 #define CYW43_EV_ESCAN_RESULT           (69)
 #define CYW43_EV_CSA_COMPLETE_IND       (80)
 #define CYW43_EV_ASSOC_REQ_IE           (87)

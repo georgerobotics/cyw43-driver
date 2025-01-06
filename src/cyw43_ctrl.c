@@ -413,6 +413,10 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
             // PSK_SUP failure
             self->wifi_join_state = WIFI_JOIN_STATE_BADAUTH;
         }
+    } else if (ev->event_type == CYW43_EV_ICV_ERROR) {
+        self->pend_rejoin = true;
+        self->pend_rejoin_wpa = false;
+        cyw43_schedule_internal_poll_dispatch(cyw43_poll_func);
     }
 
     if (self->wifi_join_state == WIFI_JOIN_STATE_ALL) {
