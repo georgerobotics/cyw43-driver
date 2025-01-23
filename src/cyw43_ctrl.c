@@ -294,6 +294,7 @@ static const char *const cyw43_async_event_name_table[89] = {
     [CYW43_EV_DISASSOC_IND] = "DISASSOC_IND",
     [CYW43_EV_LINK] = "LINK",
     [CYW43_EV_PSK_SUP] = "PSK_SUP",
+    [CYW43_EV_ICV_ERROR] = "ICV_ERROR",
     [CYW43_EV_ESCAN_RESULT] = "ESCAN_RESULT",
     [CYW43_EV_CSA_COMPLETE_IND] = "CSA_COMPLETE_IND",
     [CYW43_EV_ASSOC_REQ_IE] = "ASSOC_REQ_IE",
