@@ -45,10 +45,12 @@
 #include "cyw43_btbus.h"
 #endif
 
+#if !CYW43_USE_SPI
 #ifdef CYW43_PIN_WL_HOST_WAKE
 #define USE_SDIOIT (0)
 #else
 #define USE_SDIOIT (1)
+#endif
 #endif
 
 // Bits 0-3 are an enumeration, while bits 8-11 are flags.
@@ -81,8 +83,10 @@ static void cyw43_wifi_ap_set_up(cyw43_t *self, bool up);
 // Initialisation and polling
 
 void cyw43_init(cyw43_t *self) {
-    #ifdef CYW43_PIN_WL_HOST_WAKE
+    #if defined(CYW43_PIN_WL_HOST_WAKE)
     cyw43_hal_pin_config(CYW43_PIN_WL_HOST_WAKE, CYW43_HAL_PIN_MODE_INPUT, CYW43_HAL_PIN_PULL_NONE, 0);
+    #elif defined(CYW43_PIN_WL_IRQ)
+    cyw43_hal_pin_config(CYW43_PIN_WL_IRQ, CYW43_HAL_PIN_MODE_INPUT, CYW43_HAL_PIN_PULL_NONE, 0);
     #endif
     cyw43_hal_pin_config(CYW43_PIN_WL_REG_ON, CYW43_HAL_PIN_MODE_OUTPUT, CYW43_HAL_PIN_PULL_NONE, 0);
     cyw43_hal_pin_low(CYW43_PIN_WL_REG_ON);
@@ -200,6 +204,9 @@ static int cyw43_ensure_up(cyw43_t *self) {
     // If CYW43_PIN_WL_HOST_WAKE has a falling edge, cyw43_poll (if it's not NULL) should be called.
     cyw43_hal_pin_config_irq_falling(CYW43_PIN_WL_HOST_WAKE, true);
     #endif
+    #if defined(CYW43_PIN_WL_IRQ)
+    cyw43_hal_pin_config_irq_falling(CYW43_PIN_WL_IRQ, true);
+    #endif
 
     // Kick things off
     cyw43_schedule_internal_poll_dispatch(cyw43_poll_func);
@@ -268,9 +275,14 @@ static void cyw43_poll_func(void) {
 
 int cyw43_cb_read_host_interrupt_pin(void *cb_data) {
     (void)cb_data;
-    #ifdef CYW43_PIN_WL_HOST_WAKE
+    #if defined(CYW43_PIN_WL_HOST_WAKE)
+    // SDIO or SPI mode with WL_HOST_WAKE pin.
     return cyw43_hal_pin_read(CYW43_PIN_WL_HOST_WAKE);
+    #elif defined(CYW43_PIN_WL_IRQ)
+    // SPI mode with WL_IRQ pin (aliased to WL_SDIO_1).
+    return cyw43_hal_pin_read(CYW43_PIN_WL_IRQ);
     #else
+    // SDIO mode with WL_SDIO_1 pin in interrupt mode.
     return cyw43_hal_pin_read(CYW43_PIN_WL_SDIO_1);
     #endif
 }

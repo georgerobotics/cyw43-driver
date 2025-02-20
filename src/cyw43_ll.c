@@ -78,6 +78,17 @@ extern bool enable_spi_packet_dumping;
 #define CYW43_WRITE_BYTES_PAD(len) ALIGN_UINT((len), 64)
 #endif
 
+// Configure the active level of the host interrupt pin.
+#if CYW43_USE_SPI
+#if defined(CYW43_PIN_WL_HOST_WAKE)
+static const int host_interrupt_pin_active = 1;
+#elif defined(CYW43_PIN_WL_IRQ)
+static const int host_interrupt_pin_active = 0;
+#endif
+#else
+static const int host_interrupt_pin_active = 0;
+#endif
+
 #if CYW43_USE_STATS
 // Storage for some debug stats
 uint32_t cyw43_stats[CYW43_STAT_LAST];
@@ -945,7 +956,7 @@ static int sdpcm_process_rx_packet(cyw43_int_t *self, uint8_t *buf, size_t *out_
 
 static int cyw43_ll_sdpcm_poll_device(cyw43_int_t *self, size_t *len, uint8_t **buf) {
     // First check the SDIO interrupt line to see if the WLAN notified us
-    if (!self->had_successful_packet && cyw43_cb_read_host_interrupt_pin(self->cb_data) == 1) {
+    if (!self->had_successful_packet && cyw43_cb_read_host_interrupt_pin(self->cb_data) != host_interrupt_pin_active) {
         return -1;
     }
 
@@ -994,7 +1005,7 @@ static int cyw43_ll_sdpcm_poll_device(cyw43_int_t *self, size_t *len, uint8_t **
 
 static int cyw43_ll_sdpcm_poll_device(cyw43_int_t *self, size_t *len, uint8_t **buf) {
     // First check the SDIO interrupt line to see if the WLAN notified us
-    if (!self->had_successful_packet && !cyw43_cb_read_host_interrupt_pin(self->cb_data)) {
+    if (!self->had_successful_packet && cyw43_cb_read_host_interrupt_pin(self->cb_data) != host_interrupt_pin_active) {
         return -1;
     }
 
@@ -1419,8 +1430,11 @@ int cyw43_ll_bus_init(cyw43_ll_t *self_in, const uint8_t *mac) {
 
     bool success = false;
     do {
-        uint32_t val = WORD_LENGTH_32 | ENDIAN_BIG | HIGH_SPEED_MODE | INTERRUPT_POLARITY_HIGH | WAKE_UP |
+        uint32_t val = WORD_LENGTH_32 | ENDIAN_BIG | HIGH_SPEED_MODE | WAKE_UP |
             0x4 << (8 * SPI_RESPONSE_DELAY) | INTR_WITH_STATUS << (8 * SPI_STATUS_ENABLE);
+        #if defined(CYW43_PIN_WL_HOST_WAKE)
+        val |= INTERRUPT_POLARITY_HIGH;
+        #endif
 
         // Initialise
         if (cyw43_spi_init(self) != 0) {
@@ -2364,11 +2378,7 @@ int cyw43_ll_gpio_get(cyw43_ll_t *self_in, int gpio_n, bool *gpio_en) {
 bool cyw43_ll_has_work(cyw43_ll_t *self_in) {
     cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
     int int_pin = cyw43_cb_read_host_interrupt_pin(self->cb_data);
-    #if CYW43_USE_SPI
-    return int_pin == 1;
-    #else
-    return int_pin == 0;
-    #endif
+    return int_pin == host_interrupt_pin_active;
 }
 
 #if CYW43_ENABLE_BLUETOOTH
