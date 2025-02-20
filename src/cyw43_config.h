@@ -53,6 +53,10 @@
 #define CYW43_CLEAR_SDIO_INT (0)
 #endif
 
+#ifndef CYW43_INCLUDE_LEGACY_F1_OVERFLOW_WORKAROUND_VARIABLES
+#define CYW43_INCLUDE_LEGACY_F1_OVERFLOW_WORKAROUND_VARIABLES (0)
+#endif
+
 // Firmware configuration.
 
 // Whether Bluetooth support is enabled.

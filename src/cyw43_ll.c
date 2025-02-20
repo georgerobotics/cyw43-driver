@@ -45,8 +45,6 @@
 
 #include CYW43_WIFI_NVRAM_INCLUDE_FILE
 
-#define F1_OVERFLOW_CHANGE 0
-
 #if CYW43_USE_SPI
 #include "cyw43_spi.h"
 #include "cyw43_debug_pins.h"
@@ -994,23 +992,6 @@ static int cyw43_ll_sdpcm_poll_device(cyw43_int_t *self, size_t *len, uint8_t **
 
 #else // SPI version follows
 
-#if F1_OVERFLOW_CHANGE
-static int cyw43_spi_resync_f1(cyw43_int_t *self) {
-    if (self->last_size > 0) {
-        uint32_t cbw = self->cur_backplane_window;
-        CYW43_PRINTF("Resync F1 size: %d cbw: 0x%lx lbw: 0x%lx data: %04lx,%04lx\n",
-            self->last_size, cbw, self->last_backplane_window, self->last_header[0], self->last_header[1]);
-        cyw43_set_backplane_window(self, self->last_backplane_window);
-        int err = cyw43_spi_transfer(self, (uint8_t *)self->last_header, self->last_size, NULL, 0);
-        cyw43_set_backplane_window(self, cbw);
-        self->last_size = 0;
-        CYW43_STAT_INC(F1_RESYNC);
-        return err;
-    }
-    return 0;
-}
-#endif
-
 static int cyw43_ll_sdpcm_poll_device(cyw43_int_t *self, size_t *len, uint8_t **buf) {
     // First check the SDIO interrupt line to see if the WLAN notified us
     if (!self->had_successful_packet && !cyw43_cb_read_host_interrupt_pin(self->cb_data)) {
@@ -1065,24 +1046,6 @@ static int cyw43_ll_sdpcm_poll_device(cyw43_int_t *self, size_t *len, uint8_t **
             CYW43_STAT_INC(SPI_INT_CLEAR);
             cyw43_write_reg_u16(self, BUS_FUNCTION, SPI_INTERRUPT_REGISTER, spi_int);
         }
-        #if F1_OVERFLOW_CHANGE
-        // This doesn't work correctly.
-        if (spi_int & F1_OVERFLOW) {
-            logic_debug_set(pin_F1_OVERFLOW, 1);
-
-            assert(self->last_size);
-
-            // Wait for f1 to be ready before resync
-            uint16_t f1_info_reg;
-            do {
-                f1_info_reg = cyw43_read_reg_u16(self, BUS_FUNCTION, SPI_FUNCTION1_INFO);
-            } while ((f1_info_reg & SPI_FUNCTIONX_READY) == 0);
-
-            logic_debug_set(pin_F1_OVERFLOW, 0);
-
-            cyw43_spi_resync_f1(self);
-        }
-        #endif
         last_spi_int = spi_int;
         if (!(spi_int & F2_PACKET_AVAILABLE)) {
             return -1;
