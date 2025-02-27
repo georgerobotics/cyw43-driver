@@ -65,8 +65,15 @@
 // Firmware configuration.
 
 // Whether Bluetooth support is enabled.
+// This option uses the WiFi SPI/SDIO interface as the Bluetooth transport.
 #ifndef CYW43_ENABLE_BLUETOOTH
 #define CYW43_ENABLE_BLUETOOTH (0)
+#endif
+
+// Whether Bluetooth support is enabled.
+// This option uses a UART as the Bluetooth transport.
+#ifndef CYW43_ENABLE_BLUETOOTH_OVER_UART
+#define CYW43_ENABLE_BLUETOOTH_OVER_UART (0)
 #endif
 
 // This include should define:
@@ -105,6 +112,11 @@
 
 #ifndef CYW43_SLEEP_MAX
 #define CYW43_SLEEP_MAX (50)
+#endif
+
+// Called while waiting for an incoming character on the BT HCI UART.
+#ifndef CYW43_HAL_UART_READCHAR_BLOCKING_WAIT
+#define CYW43_HAL_UART_READCHAR_BLOCKING_WAIT cyw43_delay_us(10)
 #endif
 
 // Miscellaneous configuration.
