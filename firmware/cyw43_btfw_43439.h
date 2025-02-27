@@ -583,3 +583,6 @@ const unsigned char cyw43_btfw_43439[] CYW43_RESOURCE_ATTRIBUTE = {
   0x64, 0x00, 0xed, 0xf7, 0x05, 0x00, 0x00, 0x00, 0x00, 0x01
 };
 const unsigned int cyw43_btfw_43439_len = 6970;
+
+const uint8_t *btfw_data = &cyw43_btfw_43439[0];
+const size_t btfw_len = cyw43_btfw_43439_len;
