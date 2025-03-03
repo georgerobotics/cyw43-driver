@@ -1,6 +1,6 @@
-SRC += $(SRC_WL)
+SRC += $(SRC_BT)
 SRC += \
 	main.c \
-	tests/mock_sdio.c \
+	tests/mock_uart.c \
 
 include ../test_common.mk
