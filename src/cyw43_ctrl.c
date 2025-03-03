@@ -90,9 +90,9 @@ void cyw43_init(cyw43_t *self) {
     #endif
     cyw43_hal_pin_config(CYW43_PIN_WL_REG_ON, CYW43_HAL_PIN_MODE_OUTPUT, CYW43_HAL_PIN_PULL_NONE, 0);
     cyw43_hal_pin_low(CYW43_PIN_WL_REG_ON);
-    #ifdef CYW43_PIN_WL_RFSW_VDD
-    cyw43_hal_pin_config(CYW43_PIN_WL_RFSW_VDD, CYW43_HAL_PIN_MODE_OUTPUT, CYW43_HAL_PIN_PULL_NONE, 0); // RF-switch power
-    cyw43_hal_pin_low(CYW43_PIN_WL_RFSW_VDD);
+    #ifdef CYW43_PIN_RFSW_VDD
+    cyw43_hal_pin_config(CYW43_PIN_RFSW_VDD, CYW43_HAL_PIN_MODE_OUTPUT, CYW43_HAL_PIN_PULL_NONE, 0); // RF-switch power
+    cyw43_hal_pin_low(CYW43_PIN_RFSW_VDD);
     #endif
 
     cyw43_ll_init(&self->cyw43_ll, self);
@@ -480,9 +480,9 @@ static int cyw43_wifi_on(cyw43_t *self, uint32_t country) {
         return ret;
     }
 
-    #ifdef CYW43_PIN_WL_RFSW_VDD
+    #ifdef CYW43_PIN_RFSW_VDD
     // Turn the RF-switch on
-    cyw43_hal_pin_high(CYW43_PIN_WL_RFSW_VDD);
+    cyw43_hal_pin_high(CYW43_PIN_RFSW_VDD);
     #endif
 
     ret = cyw43_ll_wifi_on(&self->cyw43_ll, country);

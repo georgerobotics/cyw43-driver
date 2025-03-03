@@ -57,6 +57,11 @@
 #define CYW43_INCLUDE_LEGACY_F1_OVERFLOW_WORKAROUND_VARIABLES (0)
 #endif
 
+// Legacy pin configuration CYW43_PIN_WL_RFSW_VDD is renamed to CYW43_PIN_RFSW_VDD.
+#ifdef CYW43_PIN_WL_RFSW_VDD
+#define CYW43_PIN_RFSW_VDD CYW43_PIN_WL_RFSW_VDD
+#endif
+
 // Firmware configuration.
 
 // Whether Bluetooth support is enabled.
