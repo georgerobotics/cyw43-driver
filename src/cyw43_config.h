@@ -209,3 +209,15 @@
 #ifndef CYW43_DEFAULT_IP_DNS
 #define CYW43_DEFAULT_IP_DNS LWIP_MAKEU32(8, 8, 8, 8)
 #endif
+
+// Hook for any additional TCP/IP initialization than needs to be done.
+// Called after the netif specified by `itf` has been set up.
+#ifndef CYW43_CB_TCPIP_INIT_EXTRA
+#define CYW43_CB_TCPIP_INIT_EXTRA(self, itf) do { } while (0)
+#endif
+
+// Hook for any additional TCP/IP deinitialization than needs to be done.
+// Called before the netif specified by `itf` is removed.
+#ifndef CYW43_CB_TCPIP_DEINIT_EXTRA
+#define CYW43_CB_TCPIP_DEINIT_EXTRA(self, itf) do { } while (0)
+#endif
