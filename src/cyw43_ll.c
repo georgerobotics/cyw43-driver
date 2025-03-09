@@ -1839,6 +1839,12 @@ int cyw43_set_monitor_mode(cyw43_ll_t *self, int value) {
 }
 #endif
 
+int cyw43_ll_set_allmulti(cyw43_ll_t *self_in, bool value) {
+    cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
+    cyw43_write_iovar_u32(self, "allmulti", value, WWD_STA_INTERFACE);
+    return 0;
+}
+
 // Requires cyw43_ll_bus_init to have been called first
 int cyw43_ll_wifi_on(cyw43_ll_t *self_in, uint32_t country) {
     cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
