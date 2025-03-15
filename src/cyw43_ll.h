@@ -276,6 +276,8 @@ void cyw43_ll_process_packets(cyw43_ll_t *self);
 int cyw43_ll_ioctl(cyw43_ll_t *self, uint32_t cmd, size_t len, uint8_t *buf, uint32_t iface);
 int cyw43_ll_send_ethernet(cyw43_ll_t *self, int itf, size_t len, const void *buf, bool is_pbuf);
 
+void cyw43_ll_set_monitor_mode(cyw43_ll_t *self, int value);
+
 int cyw43_ll_wifi_on(cyw43_ll_t *self, uint32_t country);
 int cyw43_ll_wifi_pm(cyw43_ll_t *self, uint32_t pm, uint32_t pm_sleep_ret, uint32_t li_bcn, uint32_t li_dtim, uint32_t li_assoc);
 int cyw43_ll_wifi_get_pm(cyw43_ll_t *self, uint32_t *pm, uint32_t *pm_sleep_ret, uint32_t *li_bcn, uint32_t *li_dtim, uint32_t *li_assoc);
@@ -316,6 +318,16 @@ void cyw43_ll_write_backplane_reg(cyw43_ll_t *self_in, uint32_t addr, uint32_t v
 uint32_t cyw43_ll_read_backplane_reg(cyw43_ll_t *self_in, uint32_t addr);
 int cyw43_ll_write_backplane_mem(cyw43_ll_t *self_in, uint32_t addr, uint32_t len, const uint8_t *buf);
 int cyw43_ll_read_backplane_mem(cyw43_ll_t *self_in, uint32_t addr, uint32_t len, uint8_t *buf);
+
+/**
+ * @brief Callback function to handle monitor mode data.
+ *
+ * @param cb_data   The driver state object.
+ * @param itf       The interface identifier.
+ * @param len       The length of the received data.
+ * @param buf       A pointer to the buffer containing the received data.
+ */
+void cyw43_cb_monitor_mode(void *cb_data, int itf, size_t len, const uint8_t *buf);
 
 //!\}
 
