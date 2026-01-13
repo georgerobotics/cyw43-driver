@@ -91,7 +91,6 @@
 /*!
  * \name Link status
  * \anchor CYW43_LINK_
- * \see status_name() to get a user readable name of the status for debug
  * \see cyw43_wifi_link_status() to get the wifi status
  * \see cyw43_tcpip_link_status() to get the overall link status
  */
