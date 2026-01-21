@@ -113,6 +113,9 @@ void cyw43_init(cyw43_t *self) {
     #if CYW43_ENABLE_BLUETOOTH
     self->bt_loaded = false;
     #endif
+    #if CYW43_ASSOC_CALLBACK
+    self->assoc_cb = NULL;
+    #endif
 }
 
 void cyw43_deinit(cyw43_t *self) {
@@ -354,11 +357,23 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
         cyw43_cb_tcpip_set_link_down(self, CYW43_ITF_STA);
         self->wifi_join_state = 0x0000;
 
-    #if 0
+        // WiFi ap events
+    #if CYW43_ASSOC_CALLBACK
+    } else if (ev->event_type == CYW43_EV_ASSOC_IND) {
+        if (ev->interface == CYW43_ITF_AP) {
+            if (self->assoc_cb) {
+                self->assoc_cb(true);
+            }
+        }
     } else if (ev->event_type == CYW43_EV_DISASSOC_IND) {
         if (ev->interface == CYW43_ITF_AP) {
+            #if 0
             // Station disassociated with our AP, let DHCP server know so it can free the IP address
             dhcp_server_disassoc(&self->dhcp_server, buf + 24);
+            #endif
+            if (self->assoc_cb) {
+                self->assoc_cb(false);
+            }
         }
     #endif
 
@@ -394,10 +409,18 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
             self->wifi_join_state = WIFI_JOIN_STATE_BADAUTH;
         }
     } else if (ev->event_type == CYW43_EV_DEAUTH_IND) {
-        if (ev->status == 0 && ev->reason == 2) {
-            // Deauth, probably because password was wrong; disassociate
-            self->pend_disassoc = true;
-            cyw43_schedule_internal_poll_dispatch(cyw43_poll_func);
+        if (ev->interface == CYW43_ITF_STA) {
+            if (ev->status == 0 && ev->reason == 2) {
+                // Deauth, probably because password was wrong; disassociate
+                self->pend_disassoc = true;
+                cyw43_schedule_internal_poll_dispatch(cyw43_poll_func);
+            }
+        #if CYW43_ASSOC_CALLBACK
+        } else {
+            if (self->assoc_cb) {
+                self->assoc_cb(false);
+            }
+        #endif
         }
     } else if (ev->event_type == CYW43_EV_LINK) {
         if (ev->status == 0) {

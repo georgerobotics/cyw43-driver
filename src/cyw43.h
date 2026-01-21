@@ -148,6 +148,9 @@ typedef struct _cyw43_t {
     #if CYW43_ENABLE_BLUETOOTH
     bool bt_loaded;
     #endif
+    #if CYW43_ASSOC_CALLBACK
+    void (*assoc_cb)(bool assoc);
+    #endif
 } cyw43_t;
 
 extern cyw43_t cyw43_state;
