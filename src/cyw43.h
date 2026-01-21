@@ -148,6 +148,9 @@ typedef struct _cyw43_t {
     #if CYW43_ENABLE_BLUETOOTH
     bool bt_loaded;
     #endif
+
+    uint8_t is_monitor_mode;
+    void (*monitor_mode_cb)(void *, int, size_t, const uint8_t *);
 } cyw43_t;
 
 extern cyw43_t cyw43_state;
@@ -726,6 +729,19 @@ bool cyw43_bluetooth_controller_woken(void);
 int cyw43_bluetooth_controller_wakeup(void);
 
 #endif // CYW43_ENABLE_BLUETOOTH_OVER_UART
+
+/**
+ * @brief Set the monitor mode of the CYW43 device.
+ *
+ * @param self  the driver state object. This should always be \c &cyw43_state
+ * @param value The value to set monitor mode (1 for enabled, 0 for disabled).
+ * @param cb    A callback function to handle monitor mode data.
+ *             The callback should have the signature:
+ *             `void (*cb)(void *, int, size_t, const uint8_t *)`
+ *
+ * @return 0 on success, an error code on failure.
+ */
+int cyw43_set_monitor_mode(cyw43_t *self, int value, void (*cb)(void *, int, size_t, const uint8_t *));
 
 //!\} // cyw43_driver doxygen group
 
