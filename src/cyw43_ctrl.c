@@ -575,7 +575,10 @@ void cyw43_wifi_set_up(cyw43_t *self, int itf, bool up, uint32_t country) {
     } else {
         if (itf == CYW43_ITF_AP) {
             cyw43_wifi_ap_set_up(self, false);
-            self->itf_state &= ~(1 << CYW43_ITF_AP);
+        }
+        if (self->itf_state & (1 << itf)) {
+            cyw43_cb_tcpip_deinit(self, itf);
+            self->itf_state &= ~(1 << itf);
         }
     }
     CYW43_THREAD_EXIT;
