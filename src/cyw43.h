@@ -201,6 +201,16 @@ int cyw43_ioctl(cyw43_t *self, uint32_t cmd, size_t len, uint8_t *buf, uint32_t 
 int cyw43_send_ethernet(cyw43_t *self, int itf, size_t len, const void *buf, bool is_pbuf);
 
 /*!
+ * \brief Enable/disable passing of all multicast packets
+ *
+ * This method allows disabling filtering out packets sent to multicast ethernet mac addresses.
+ * \param self the driver state object. This should always be \c &cyw43_state
+ * \param value true to disable filtering of multicast packets
+ * \return 0 on success
+ */
+int cyw43_set_allmulti(cyw43_t *self, bool value);
+
+/*!
  * \brief Set the wifi power management mode
  *
  * This method sets the power management mode used by cyw43.
