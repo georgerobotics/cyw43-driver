@@ -201,6 +201,7 @@ static void cyw43_xxd(size_t len, const uint8_t *buf) {
 #define WLC_SET_DTIMPRD (78)
 #define WLC_GET_PM (85)
 #define WLC_SET_PM (86)
+#define WLC_SET_MONITOR (108)
 #define WLC_SET_GMODE (110)
 #define WLC_SET_WSEC (134)
 #define WLC_SET_BAND (142)
@@ -1138,6 +1139,7 @@ void cyw43_ll_process_packets(cyw43_ll_t *self_in) {
             cyw43_cb_process_async_event(self, cyw43_ll_parse_async_event(len, buf));
         } else if (ret == DATA_HEADER) {
             cyw43_cb_process_ethernet(self->cb_data, len >> 31, len & 0x7fffffff, buf);
+            cyw43_cb_monitor_mode(self->cb_data, len >> 31, len & 0x7fffffff, buf);
         } else if (CYW43_USE_SPI && ret == CYW43_ERROR_WRONG_PAYLOAD_TYPE) {
             // Ignore this error when using the SPI interface.  It can occur when there
             // is a lot of traffic over the SPI (eg sending UDP packets continuously)
@@ -1818,26 +1820,10 @@ static uint32_t cyw43_read_iovar_u32(cyw43_int_t *self, const char *var, uint32_
     return cyw43_get_le32(buf);
 }
 
-#if 0
-#define WLC_SET_MONITOR (108)
-int cyw43_set_monitor_mode(cyw43_ll_t *self, int value) {
-    CYW_THREAD_ENTER;
-    int ret = cyw43_ensure_up(self);
-    if (ret) {
-        CYW_THREAD_EXIT;
-        return ret;
-    }
-
-    CYW_ENTER;
-    self->is_monitor_mode = value;
-    cyw43_write_iovar_u32(self, "allmulti", value, WWD_STA_INTERFACE);
-    cyw43_set_ioctl_u32(self, WLC_SET_MONITOR, value, WWD_STA_INTERFACE);
-    CYW_EXIT;
-    CYW_THREAD_EXIT;
-
-    return 0;
+void cyw43_ll_set_monitor_mode(cyw43_ll_t *self, int value) {
+    cyw43_write_iovar_u32(CYW_INT_FROM_LL(self), "allmulti", value, WWD_STA_INTERFACE);
+    cyw43_set_ioctl_u32(CYW_INT_FROM_LL(self), WLC_SET_MONITOR, value, WWD_STA_INTERFACE);
 }
-#endif
 
 // Requires cyw43_ll_bus_init to have been called first
 int cyw43_ll_wifi_on(cyw43_ll_t *self_in, uint32_t country) {

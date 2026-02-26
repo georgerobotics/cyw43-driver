@@ -809,3 +809,23 @@ int cyw43_bluetooth_hci_write(uint8_t *buf, size_t len) {
     return 0;
 }
 #endif
+
+void cyw43_cb_monitor_mode(void *cb_data, int itf, size_t len, const uint8_t *buf) {
+    cyw43_t *self = cb_data;
+    if(self->is_monitor_mode && self->monitor_mode_cb)
+        self->monitor_mode_cb(cb_data, itf, len, buf);
+}
+
+int cyw43_set_monitor_mode(cyw43_t *self, int value, void (*cb)(void *, int, size_t, const uint8_t *)) {
+    CYW43_THREAD_ENTER;
+    int ret = cyw43_ensure_up(self);
+    if (ret) {
+        CYW43_THREAD_EXIT;
+        return ret;
+    }
+    cyw43_ll_set_monitor_mode(&self->cyw43_ll, value);
+    self->is_monitor_mode = value;
+    self->monitor_mode_cb = cb;
+    CYW43_THREAD_EXIT;
+    return 0;
+}
