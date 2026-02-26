@@ -70,6 +70,7 @@
 #define CYW43_EV_DEAUTH                 (5)
 #define CYW43_EV_DEAUTH_IND             (6)
 #define CYW43_EV_ASSOC                  (7)
+#define CYW43_EV_ASSOC_IND              (8)
 #define CYW43_EV_DISASSOC               (11)
 #define CYW43_EV_DISASSOC_IND           (12)
 #define CYW43_EV_LINK                   (16)
