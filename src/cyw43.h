@@ -104,6 +104,21 @@
 #define CYW43_LINK_BADAUTH      (-3)    ///< Authenticatation failure
 //!\}
 
+/*!
+ * \name Interference mitigation mode
+ * \anchor CYW43_INTERFERE_
+ * The firmware default is \ref CYW43_INTERFERE_AUTO_NOISE.
+ * \see cyw43_wifi_set_interference_mode() to set the mitigation mode
+ * \see cyw43_wifi_get_interference_mode() to get the mitigation mode
+ */
+//!\{
+#define CYW43_INTERFERE_NONE        (0)     ///< None/Disabled
+#define CYW43_INTERFERE_NON_WLAN    (1)     ///< Non-WLAN
+#define CYW43_INTERFERE_WLAN_MANUAL (2)     ///< Adjacent channel interference (ACI) mode
+#define CYW43_INTERFERE_AUTO        (3)     ///< Automatic as determined by driver (ACI)
+#define CYW43_INTERFERE_AUTO_NOISE  (4)     ///< Automatic as determined by driver with noise reduction (ACI)
+//!\}
+
 typedef struct _cyw43_t {
     cyw43_ll_t cyw43_ll;
 
@@ -187,6 +202,34 @@ void cyw43_deinit(cyw43_t *self);
 int cyw43_ioctl(cyw43_t *self, uint32_t cmd, size_t len, uint8_t *buf, uint32_t iface);
 
 /*!
+ * \brief Set an ioctl whose value is a single unsigned 32-bit integer
+ *
+ * Convenience wrapper around \ref cyw43_ioctl for the common case of an ioctl
+ * that takes a 4-byte value, e.g. the various \c CYW43_IOCTL_SET_xxx commands.
+ *
+ * \param self  the driver state object. This should always be \c &cyw43_state
+ * \param cmd   the ioctl command to send, e.g. one of the \c CYW43_IOCTL_SET_xxx defines
+ * \param val   the value to set
+ * \param iface the interface to use, either \ref CYW43_ITF_STA or \ref CYW43_ITF_AP
+ * \return 0 on success, negative error code on failure
+ */
+int cyw43_ioctl_set_u32(cyw43_t *self, uint32_t cmd, uint32_t val, uint32_t iface);
+
+/*!
+ * \brief Get an ioctl whose value is a single unsigned 32-bit integer
+ *
+ * Convenience wrapper around \ref cyw43_ioctl for the common case of an ioctl
+ * that returns a 4-byte value, e.g. the various \c CYW43_IOCTL_GET_xxx commands.
+ *
+ * \param self    the driver state object. This should always be \c &cyw43_state
+ * \param cmd     the ioctl command to send, e.g. one of the \c CYW43_IOCTL_GET_xxx defines
+ * \param out_val Output: the value that was read. Must not be NULL.
+ * \param iface   the interface to use, either \ref CYW43_ITF_STA or \ref CYW43_ITF_AP
+ * \return 0 on success, negative error code on failure
+ */
+int cyw43_ioctl_get_u32(cyw43_t *self, uint32_t cmd, uint32_t *out_val, uint32_t iface);
+
+/*!
  * \brief Send a raw ethernet packet
  *
  * This method sends a raw ethernet packet.
@@ -199,6 +242,38 @@ int cyw43_ioctl(cyw43_t *self, uint32_t cmd, size_t len, uint8_t *buf, uint32_t 
  * \return 0 on success
  */
 int cyw43_send_ethernet(cyw43_t *self, int itf, size_t len, const void *buf, bool is_pbuf);
+
+/*!
+ * \brief Set the WiFi interference mitigation mode
+ *
+ * Controls how aggressively the firmware attempts to mitigate interference
+ * on the 2.4GHz band. Higher modes reduce interference at the cost of
+ * RX sensitivity, which can be detrimental to long range operation.
+ *
+ * The firmware default is \ref CYW43_INTERFERE_AUTO_NOISE, the most
+ * aggressive mode.
+ *
+ * \note This setting applies globally to the radio and affects both the
+ * STA and AP interfaces in apsta mode.
+ *
+ * \param self  The driver state object, always \c &cyw43_state
+ * \param mode  Interference mitigation mode, one of \ref CYW43_INTERFERE_
+ * \return 0 on success, negative error code on failure
+ */
+static inline int cyw43_wifi_set_interference_mode(cyw43_t *self, uint32_t mode) {
+    return cyw43_ioctl_set_u32(self, CYW43_IOCTL_SET_INTERFERENCE_MODE, mode, CYW43_ITF_STA);
+}
+
+/*!
+ * \brief Get the current WiFi interference mitigation mode
+ *
+ * \param self  The driver state object, always \c &cyw43_state
+ * \param mode  Output: current interference mitigation mode, one of \ref CYW43_INTERFERE_
+ * \return 0 on success, negative error code on failure
+ */
+static inline int cyw43_wifi_get_interference_mode(cyw43_t *self, uint32_t *mode) {
+    return cyw43_ioctl_get_u32(self, CYW43_IOCTL_GET_INTERFERENCE_MODE, mode, CYW43_ITF_STA);
+}
 
 /*!
  * \brief Set the wifi power management mode
@@ -359,6 +434,110 @@ int cyw43_wifi_join(cyw43_t *self, size_t ssid_len, const uint8_t *ssid, size_t 
  * \return 0 on success
  */
 int cyw43_wifi_leave(cyw43_t *self, int itf);
+
+/*!
+ * \brief Enable or disable WiFi roaming on the STA interface
+ *
+ * When disabled, the firmware will remain associated to its current AP
+ * regardless of signal strength. When enabled, roaming behaviour is
+ * governed by the parameters set in \c cyw43_wifi_set_roam_params.
+ *
+ * Roaming is enabled by default.
+ *
+ * \param self     The driver state object, always \c &cyw43_state
+ * \param enabled  true to enable roaming, false to disable
+ * \return 0 on success, negative error code on failure
+ */
+int cyw43_wifi_set_roam_enabled(cyw43_t *self, bool enabled);
+
+/*!
+ * \brief Query whether WiFi roaming is enabled on the STA interface
+ *
+ * Reads back the current state of the \c roam_off iovar.
+ *
+ * \param self     The driver state object, always \c &cyw43_state
+ * \param enabled  Output: true if roaming is enabled, false if disabled
+ * \return 0 on success, negative error code on failure
+ */
+int cyw43_wifi_get_roam_enabled(cyw43_t *self, bool *enabled);
+
+/*!
+ * \brief Configure WiFi roaming parameters for the STA interface
+ *
+ * Controls when the firmware will scan for and switch to a better AP.
+ * Roaming is a STA-mode only feature - these parameters have no effect
+ * when called on the AP interface.
+ *
+ * The firmware begins scanning for alternative APs when the current AP's
+ * RSSI drops below \p trigger_dbm. A candidate AP must have an RSSI at
+ * least \p candidate_delta_db higher than the current AP before the
+ * firmware will roam to it. This prevents thrashing between APs of
+ * similar signal strength.
+ *
+ * The firmware defaults are a trigger of -75dBm, a delta of 20dB and a scan
+ * period of 10.
+ *
+ * \param self          The driver state object, always \c &cyw43_state
+ * \param trigger_dbm   RSSI threshold in dBm below which roam scanning begins.
+ *                      Must be negative. Default: -75.
+ * \param candidate_delta_db  Minimum RSSI improvement in dB a candidate AP
+ *                      must offer over the current AP to trigger a roam.
+ *                      Default: 20.
+ * \param scan_period   How often the firmware scans for better APs while
+ *                      below the trigger threshold. Default: 10. The unit is
+ *                      not documented by the vendor; it is believed to be
+ *                      seconds, and the firmware range checks nothing.
+ * \return 0 on success, negative error code on failure
+ */
+static inline int cyw43_wifi_set_roam_params(cyw43_t *self, int32_t trigger_dbm, int32_t candidate_delta_db, int32_t scan_period) {
+    int ret = cyw43_ioctl_set_u32(self, CYW43_IOCTL_SET_ROAM_TRIGGER, (uint32_t)trigger_dbm, CYW43_ITF_STA);
+    if (ret) {
+        return ret;
+    }
+    ret = cyw43_ioctl_set_u32(self, CYW43_IOCTL_SET_ROAM_DELTA, (uint32_t)candidate_delta_db, CYW43_ITF_STA);
+    if (ret) {
+        return ret;
+    }
+    return cyw43_ioctl_set_u32(self, CYW43_IOCTL_SET_ROAM_SCAN_PERIOD, (uint32_t)scan_period, CYW43_ITF_STA);
+}
+
+/*!
+ * \brief Retrieve the current WiFi roaming parameters for the STA interface
+ *
+ * Reads back the roaming parameters that are currently set.
+ * Any pointer may be NULL if that parameter is not required.
+ *
+ * \param self                The driver state object, always \c &cyw43_state
+ * \param trigger_dbm         Output: RSSI threshold in dBm below which roam
+ *                            scanning begins. Will be a negative value.
+ * \param candidate_delta_db  Output: Minimum RSSI improvement in dB a candidate
+ *                            AP must offer over the current AP to trigger a roam.
+ * \param scan_period         Output: How often the firmware scans for better
+ *                            APs while below the trigger threshold.
+ * \return 0 on success, negative error code on failure
+ */
+static inline int cyw43_wifi_get_roam_params(cyw43_t *self, int32_t *trigger_dbm, int32_t *candidate_delta_db, int32_t *scan_period) {
+    int ret;
+    if (trigger_dbm != NULL) {
+        ret = cyw43_ioctl_get_u32(self, CYW43_IOCTL_GET_ROAM_TRIGGER, (uint32_t *)trigger_dbm, CYW43_ITF_STA);
+        if (ret) {
+            return ret;
+        }
+    }
+    if (candidate_delta_db != NULL) {
+        ret = cyw43_ioctl_get_u32(self, CYW43_IOCTL_GET_ROAM_DELTA, (uint32_t *)candidate_delta_db, CYW43_ITF_STA);
+        if (ret) {
+            return ret;
+        }
+    }
+    if (scan_period != NULL) {
+        ret = cyw43_ioctl_get_u32(self, CYW43_IOCTL_GET_ROAM_SCAN_PERIOD, (uint32_t *)scan_period, CYW43_ITF_STA);
+        if (ret) {
+            return ret;
+        }
+    }
+    return 0;
+}
 
 /*!
  * \brief Get the signal strength (RSSI) of the wifi network
