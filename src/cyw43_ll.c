@@ -263,6 +263,13 @@ static void cyw43_xxd(size_t len, const uint8_t *buf) {
 #define DOT11_IE_ID_RSN               (48)
 #define DOT11_IE_ID_VENDOR_SPECIFIC   (221)
 #define WPA_OUI_TYPE1                 "\x00\x50\xF2\x01"
+#define IEEE_802_11_OUI               "\x00\x0F\xAC"
+#define IEEE_802_11_OUI_LEN           3
+
+// Field offsets for authentication (RSN/WPA) IEs
+#define IE_AUTH_GROUP_CIPHER_OUI_OFFSET      4
+#define IE_AUTH_GROUP_CIPHER_OFFSET          7
+#define IE_AUTH_PAIRWISE_CIPHER_COUNT_OFFSET 8
 
 #define SLEEP_MAX (50)
 
@@ -508,21 +515,26 @@ typedef struct _cyw43_scan_result_internal_t {
     uint16_t capability;
     uint8_t ssid_len;
     uint8_t ssid[32];
+    uint8_t pad1[1];
     uint32_t rateset_count;
     uint8_t rateset_rates[16];
     uint16_t chanspec;
     uint16_t atim_window;
     uint8_t dtim_period;
+    uint8_t pad2[1];
     int16_t rssi;
     int8_t phy_noise;
     uint8_t n_cap;
+    uint8_t pad3[2];
     uint32_t nbss_cap;
     uint8_t ctl_ch;
+    uint8_t pad4[3];
     uint32_t reserved32[1];
     uint8_t flags;
-    uint8_t reserved[3];
+    uint8_t pad5[3];
     uint8_t basic_mcs[16];
     uint16_t ie_offset;
+    uint8_t pad6[2];
     uint32_t ie_length;
     int16_t SNR;
 } cyw43_scan_result_internal_t;
@@ -534,6 +546,148 @@ static inline uint32_t cyw43_be32toh(uint32_t x) {
 static inline uint16_t cyw43_be16toh(uint16_t x) {
     return (x >> 8) | (x << 8);
 }
+
+/* IEEE 802.11 AKM suites */
+typedef enum
+{
+    AKM_RESERVED,
+    AKM_8021X,        /* WPA2 enterprise                 */
+    AKM_PSK,          /* WPA2 PSK                        */
+    AKM_FT_8021X,     /* 802.11r Fast Roaming enterprise */
+    AKM_FT_PSK,       /* 802.11r Fast Roaming PSK        */
+    AKM_8021X_SHA256,
+    AKM_PSK_SHA256,
+    AKM_TDLS,         /* Tunneled Direct Link Setup      */
+    AKM_SAE_SHA256,
+    AKM_FT_SAE_SHA256,
+    AKM_AP_PEER_KEY_SHA256,
+    AKM_SUITEB_8021X_HMAC_SHA256,
+    AKM_SUITEB_8021X_HMAC_SHA384,
+    AKM_SUITEB_FT_8021X_HMAC_SHA384,
+} akm_suite_t;
+
+/* IEEE 802.11 Cipher suites */
+typedef enum
+{
+    CIPHER_GROUP,            /* Use group cipher suite                               */
+    CIPHER_WEP_40,           /* WEP-40                                               */
+    CIPHER_TKIP,             /* TKIP                                                 */
+    CIPHER_RESERVED,         /* Reserved                                             */
+    CIPHER_CCMP_128,         /* CCMP-128 - default pairwise and group cipher suite   */
+    CIPHER_WEP_104,          /* WEP-104 - also known as WEP-128                      */
+    CIPHER_BIP_CMAC_128,     /* BIP-CMAC-128 - default management frame cipher suite */
+    CIPHER_GROUP_DISALLOWED, /* Group address traffic not allowed                    */
+    CIPHER_GCMP_128,         /* GCMP-128 - default for 60 GHz STAs                   */
+    CIPHER_GCMP_256,         /* GCMP-256 - introduced for Suite B                    */
+    CIPHER_CCMP_256,         /* CCMP-256 - introduced for suite B                    */
+    CIPHER_BIP_GMAC_128,     /* BIP-GMAC-128 - introduced for suite B                */
+    CIPHER_BIP_GMAC_256,     /* BIP-GMAC-256 - introduced for suite B                */
+    CIPHER_BIP_CMAC_256,     /* BIP-CMAC-256 - introduced for suite B                */
+} cipher_t;
+
+/*
+ * Parses an RSN or vendor-specific WPA IE.
+ *
+ * Parameters:
+ *   ie: the buffer containing the Information Element.
+ *   wpa: 1 if the IE is a vendor-specific WPA IE, 0 if it's an RSN IE.
+ *
+ * Returns the security and authentication capabilities encoded in a
+ * 32-bit field (see the CYW43_AUTH_ macros), or 0 if it found an error
+ * parsing the IE.
+ */
+static uint32_t cyw43_ll_wifi_parse_ie_auth(uint8_t *ie, int wpa) {
+    uint32_t security = 0;
+    char *oui;
+    int pairwise_cipher_cnt;
+    int akm_cnt;
+    int idx;
+
+    if (wpa) {
+        security = CYW43_AUTH_FLAG_WPA_SECURITY;
+        oui = WPA_OUI_TYPE1;
+    } else {
+        oui = IEEE_802_11_OUI;
+    }
+
+    /* Group cipher suite */
+    if (memcmp(&ie[IE_AUTH_GROUP_CIPHER_OUI_OFFSET], oui, IEEE_802_11_OUI_LEN)) {
+        return 0;
+    }
+    switch (ie[IE_AUTH_GROUP_CIPHER_OFFSET]) {
+        case CIPHER_TKIP:
+            security |= CYW43_AUTH_FLAG_TKIP_ENABLED;
+            break;
+        case CIPHER_CCMP_128:
+            security |= CYW43_AUTH_FLAG_AES_ENABLED;
+            break;
+        default:
+            CYW43_WARN("Unsupported group cipher %d\n", ie[IE_AUTH_GROUP_CIPHER_OFFSET]);
+    }
+
+    /* Pairwise cipher suites */
+    pairwise_cipher_cnt = *(uint16_t *)(&ie[IE_AUTH_PAIRWISE_CIPHER_COUNT_OFFSET]);
+    idx = IE_AUTH_PAIRWISE_CIPHER_COUNT_OFFSET + 2;
+    for (int i = 0; i < pairwise_cipher_cnt; i++) {
+        if (memcmp(&ie[idx], oui, IEEE_802_11_OUI_LEN)) {
+            CYW43_WARN("Error parsing management IE: wrong OUI in pairwise cipher\n");
+            return 0;
+        }
+        idx += IEEE_802_11_OUI_LEN;
+        switch (ie[idx]) {
+            case CIPHER_TKIP:
+                security |= CYW43_AUTH_FLAG_TKIP_ENABLED;
+                break;
+            case CIPHER_CCMP_128:
+                security |= CYW43_AUTH_FLAG_AES_ENABLED;
+                break;
+            default:
+                CYW43_WARN("Unsupported pairwise cipher %d\n", ie[idx]);
+        }
+        idx++;
+    }
+
+    /* AKM suites */
+    akm_cnt = *(uint16_t *)(&ie[idx]);
+    idx += 2;
+    for (int i = 0; i < akm_cnt; i++) {
+        if (memcmp(&ie[idx], oui, IEEE_802_11_OUI_LEN)) {
+            CYW43_WARN("Error parsing management IE: wrong OUI in AKM suite\n");
+            return 0;
+        }
+        idx += IEEE_802_11_OUI_LEN;
+        switch (ie[idx]) {
+            case AKM_PSK:
+                security |= CYW43_AUTH_FLAG_WPA2_SECURITY;
+                break;
+            case AKM_PSK_SHA256:
+                security |= CYW43_AUTH_FLAG_WPA2_SECURITY | CYW43_AUTH_FLAG_WPA2_SHA256_SECURITY;
+                break;
+            case AKM_SAE_SHA256:
+                security |= CYW43_AUTH_FLAG_WPA3_SECURITY;
+                break;
+            case AKM_8021X:
+                if (wpa) {
+                    security |= CYW43_AUTH_FLAG_ENTERPRISE_ENABLED;
+                } else {
+                    security |= CYW43_AUTH_FLAG_WPA2_SECURITY | CYW43_AUTH_FLAG_ENTERPRISE_ENABLED;
+                }
+                break;
+            case AKM_FT_8021X:
+                security |= CYW43_AUTH_FLAG_WPA2_SECURITY | CYW43_AUTH_FLAG_FBT_ENABLED | CYW43_AUTH_FLAG_ENTERPRISE_ENABLED;
+                break;
+            case AKM_FT_PSK:
+                security |= CYW43_AUTH_FLAG_WPA2_SECURITY | CYW43_AUTH_FLAG_FBT_ENABLED;
+                break;
+            default:
+                CYW43_WARN("Unsupported group cipher %d\n", ie[idx]);
+        }
+        idx++;
+    }
+
+    return security;
+}
+
 
 static void cyw43_ll_wifi_parse_scan_result(cyw43_async_event_t *ev) {
     struct _scan_result_t {
@@ -572,15 +726,13 @@ static void cyw43_ll_wifi_parse_scan_result(cyw43_async_event_t *ev) {
     }
     int security = 0;// OPEN
     if (ie_rsn != NULL) {
-        // TODO need to parse the IE to check for TKIP, AES and enterprise modes
-        security |= 4;// WPA2;
+        security = cyw43_ll_wifi_parse_ie_auth(ie_rsn, 0);
     }
     if (ie_wpa != NULL) {
-        // TODO need to parse the IE to check for TKIP, AES and enterprise modes
-        security |= 2;// WPA;
+        security = cyw43_ll_wifi_parse_ie_auth(ie_wpa, 1);
     }
     if (scan_res->bss.capability & DOT11_CAP_PRIVACY) {
-        security |= 1;// WEP_PSK;
+        security |= CYW43_AUTH_FLAG_WEP_ENABLED;
     }
 
     ev->u.scan_result.channel &= 0xff;

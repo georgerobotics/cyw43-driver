@@ -169,18 +169,40 @@
 #define CYW43_REASON_SUP_DEAUTH             (14)    // received FC_DEAUTH
 #define CYW43_REASON_SUP_WPA_PSK_TMO        (15)    // WPA PSK 4-way handshake timeout
 
+// Security and authentication flags
+#define CYW43_AUTH_FLAG_WEP_ENABLED              0x0001
+#define CYW43_AUTH_FLAG_TKIP_ENABLED             0x0002
+#define CYW43_AUTH_FLAG_AES_ENABLED              0x0004
+#define CYW43_AUTH_FLAG_SHARED_ENABLED       0x00008000
+#define CYW43_AUTH_FLAG_WPA_SECURITY         0x00200000
+#define CYW43_AUTH_FLAG_WPA2_SECURITY        0x00400000
+#define CYW43_AUTH_FLAG_WPA2_SHA256_SECURITY 0x00800000
+#define CYW43_AUTH_FLAG_WPA3_SECURITY        0x01000000
+#define CYW43_AUTH_FLAG_ENTERPRISE_ENABLED   0x02000000
+#define CYW43_AUTH_FLAG_WPS_ENABLED          0x10000000
+#define CYW43_AUTH_FLAG_IBSS_ENABLED         0x20000000
+#define CYW43_AUTH_FLAG_FBT_ENABLED          0x40000000
+
 /**
  * \name Authorization types
  * \brief Used when setting up an access point, or connecting to an access point
  * \anchor CYW43_AUTH_
  */
 //!\{
-#define CYW43_AUTH_OPEN (0)                     ///< No authorisation required (open)
-#define CYW43_AUTH_WPA_TKIP_PSK   (0x00200002)  ///< WPA authorisation
-#define CYW43_AUTH_WPA2_AES_PSK   (0x00400004)  ///< WPA2 authorisation (preferred)
-#define CYW43_AUTH_WPA2_MIXED_PSK (0x00400006)  ///< WPA2/WPA mixed authorisation
-#define CYW43_AUTH_WPA3_SAE_AES_PSK  (0x01000004)   ///< WPA3 AES authorisation
-#define CYW43_AUTH_WPA3_WPA2_AES_PSK (0x01400004)   ///< WPA2/WPA3 authorisation
+//! No authorisation required (open)
+#define CYW43_AUTH_OPEN              (0)
+//! WEP PSK Security with open authentication
+#define CYW43_AUTH_WEP_PSK           (CYW43_AUTH_FLAG_WEP_ENABLED)
+//! WPA authorisation
+#define CYW43_AUTH_WPA_TKIP_PSK      (CYW43_AUTH_FLAG_WPA_SECURITY | CYW43_AUTH_FLAG_TKIP_ENABLED)
+//! WPA2 authorisation (preferred)
+#define CYW43_AUTH_WPA2_AES_PSK      (CYW43_AUTH_FLAG_WPA2_SECURITY | CYW43_AUTH_FLAG_AES_ENABLED)
+//! WPA2/WPA mixed authorisation
+#define CYW43_AUTH_WPA2_MIXED_PSK    (CYW43_AUTH_FLAG_WPA2_SECURITY | CYW43_AUTH_FLAG_AES_ENABLED | CYW43_AUTH_FLAG_TKIP_ENABLED)
+//! WPA3 AES authorisation
+#define CYW43_AUTH_WPA3_SAE_AES_PSK  (CYW43_AUTH_FLAG_WPA3_SECURITY | CYW43_AUTH_FLAG_AES_ENABLED)
+//! WPA2/WPA3 authorisation
+#define CYW43_AUTH_WPA3_WPA2_AES_PSK (CYW43_AUTH_FLAG_WPA3_SECURITY | CYW43_AUTH_FLAG_WPA2_SECURITY | CYW43_AUTH_FLAG_AES_ENABLED)
 //!\}
 
 /*!
@@ -229,9 +251,10 @@ typedef struct _cyw43_ev_scan_result_t {
     uint8_t ssid[32];   ///< wlan access point name
     uint32_t _2[5];
     uint16_t channel;   ///< wifi channel
-    uint16_t _3;
-    uint8_t auth_mode;  ///< wifi auth mode \ref CYW43_AUTH_
+    uint8_t _3[4];
     int16_t rssi;       ///< signal strength
+    uint8_t _4[12];
+    uint32_t auth_mode; ///< security and authentication flags
 } cyw43_ev_scan_result_t;
 //!\}
 
