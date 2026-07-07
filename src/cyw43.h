@@ -122,6 +122,9 @@ typedef struct _cyw43_t {
     bool pend_rejoin;
     bool pend_rejoin_wpa;
 
+    // Number of automatic rejoins remaining after a transient join failure.
+    uint8_t wifi_join_retries;
+
     // AP settings
     uint32_t ap_auth;
     uint8_t ap_channel;
