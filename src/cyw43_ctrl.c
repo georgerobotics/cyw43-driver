@@ -64,6 +64,15 @@
 #define WIFI_JOIN_STATE_KEYED   (0x0800)
 #define WIFI_JOIN_STATE_ALL     (0x0e01)
 
+// The cyw43 firmware not-uncommonly reports a transient authentication or WPA
+// handshake failure on the first association to an AP, even when the supplied
+// credentials are correct; a plain rejoin then succeeds.  Automatically rejoin
+// this many times before reporting a bad-auth failure to the caller.  A
+// genuinely wrong password still fails once the retries are exhausted.
+#ifndef CYW43_WIFI_JOIN_AUTH_RETRIES
+#define CYW43_WIFI_JOIN_AUTH_RETRIES (4)
+#endif
+
 #define CYW43_STA_IS_ACTIVE(self) (((self)->itf_state >> CYW43_ITF_STA) & 1)
 #define CYW43_AP_IS_ACTIVE(self) (((self)->itf_state >> CYW43_ITF_AP) & 1)
 
@@ -390,8 +399,15 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
         } else if (ev->status == 6) {
             // Unsolicited auth packet, ignore it
         } else {
-            // Cannot authenticate
-            self->wifi_join_state = WIFI_JOIN_STATE_BADAUTH;
+            // Cannot authenticate.  This is often transient on a first
+            // association, so rejoin a few times before reporting a bad-auth.
+            if (self->wifi_join_retries > 0) {
+                self->wifi_join_retries -= 1;
+                self->pend_rejoin = true;
+                cyw43_schedule_internal_poll_dispatch(cyw43_poll_func);
+            } else {
+                self->wifi_join_state = WIFI_JOIN_STATE_BADAUTH;
+            }
         }
     } else if (ev->event_type == CYW43_EV_DEAUTH_IND) {
         if (ev->status == 0 && ev->reason == 2) {
@@ -422,8 +438,15 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
             self->pend_rejoin = true;
             cyw43_schedule_internal_poll_dispatch(cyw43_poll_func);
         } else {
-            // PSK_SUP failure
-            self->wifi_join_state = WIFI_JOIN_STATE_BADAUTH;
+            // PSK_SUP failure.  As with EV_AUTH this is often transient, so
+            // rejoin a few times before reporting a bad-auth.
+            if (self->wifi_join_retries > 0) {
+                self->wifi_join_retries -= 1;
+                self->pend_rejoin = true;
+                cyw43_schedule_internal_poll_dispatch(cyw43_poll_func);
+            } else {
+                self->wifi_join_state = WIFI_JOIN_STATE_BADAUTH;
+            }
         }
     } else if (ev->event_type == CYW43_EV_ICV_ERROR) {
         self->pend_rejoin = true;
@@ -651,6 +674,7 @@ int cyw43_wifi_join(cyw43_t *self, size_t ssid_len, const uint8_t *ssid, size_t 
         // Wait for responses: EV_AUTH, EV_LINK, EV_SET_SSID, EV_PSK_SUP
         // Will get EV_DEAUTH_IND if password is invalid
         self->wifi_join_state = WIFI_JOIN_STATE_ACTIVE;
+        self->wifi_join_retries = CYW43_WIFI_JOIN_AUTH_RETRIES;
 
         if (auth_type == CYW43_AUTH_OPEN) {
             // For open security we don't need EV_PSK_SUP, so set that flag indicator now
