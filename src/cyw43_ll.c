@@ -864,8 +864,15 @@ static int cyw43_sdpcm_send_common(cyw43_int_t *self, uint32_t kind, size_t len,
 
     self->wwd_sdpcm_packet_transmit_sequence_number += 1;
 
+    #if CYW43_USE_SPI
+    // cyw43_write_bytes will pad the data to 4-byte alignment for the
+    // SPI transfer, but the actual payload size is encoded in the
+    // header word
+    return cyw43_write_bytes(self, WLAN_FUNCTION, 0, size, buf);
+    #else
     // padding is taken from junk at end of buffer
     return cyw43_write_bytes(self, WLAN_FUNCTION, 0, CYW43_WRITE_BYTES_PAD(size), buf);
+    #endif
 }
 
 struct ioctl_header_t {
