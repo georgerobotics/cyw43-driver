@@ -836,30 +836,39 @@ int cyw43_bluetooth_hci_init(void) {
 // Read data
 int cyw43_bluetooth_hci_read(uint8_t *buf, uint32_t max_size, uint32_t *len) {
     cyw43_t *self = &cyw43_state;
+    // Hold the bus lock across the whole transfer: the BT shared bus runs over
+    // the same gSPI/SDIO backplane as WiFi, so a caller that does not already
+    // serialise against WiFi (i.e. anything other than the btstack transport)
+    // would otherwise interleave WiFi and BT transfers on the bus.
+    CYW43_THREAD_ENTER;
     int ret = cyw43_ensure_bt_up(self);
     if (ret) {
+        CYW43_THREAD_EXIT;
         return ret;
     }
     ret = cyw43_btbus_read(buf, max_size, len);
     if (ret) {
         CYW43_PRINTF("cyw43_bluetooth_hci_read: failed to read from shared bus\n");
-        return ret;
     }
-    return 0;
+    CYW43_THREAD_EXIT;
+    return ret;
 }
 
 // Write data, buffer needs to include space for a 4 byte header and include this in len
 int cyw43_bluetooth_hci_write(uint8_t *buf, size_t len) {
     cyw43_t *self = &cyw43_state;
+    // See cyw43_bluetooth_hci_read: hold the bus lock across the whole transfer.
+    CYW43_THREAD_ENTER;
     int ret = cyw43_ensure_bt_up(self);
     if (ret) {
+        CYW43_THREAD_EXIT;
         return ret;
     }
     ret = cyw43_btbus_write(buf, len);
     if (ret) {
         CYW43_PRINTF("cyw43_bluetooth_hci_write: failed to write to shared bus\n");
-        return ret;
     }
-    return 0;
+    CYW43_THREAD_EXIT;
+    return ret;
 }
 #endif
