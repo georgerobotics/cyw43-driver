@@ -39,11 +39,15 @@
 
 #if !CYW43_USE_SPI
 
+static inline uint32_t cyw43_sdio_arg_pack(bool write, uint32_t fn, bool block_mode, bool inc, uint32_t addr, uint32_t len) {
+    return write << 31 | fn << 28 | block_mode << 27 | inc << 26 | addr << 9 | len;
+}
+
 // Performs an SDIO CMD52 transaction.
 // On success returns the response byte (0-255).
 // On error returns a negative errno code.
 static int cyw43_sdio_cmd52(bool write, uint32_t fn, uint32_t addr, uint32_t val) {
-    uint32_t arg = fn << 28 | (addr & 0x1ffff) << 9 | write << 31 | (val & 0xff);
+    uint32_t arg = cyw43_sdio_arg_pack(write, fn, false, false, addr & 0x1ffff, val & 0xff);
     uint32_t resp;
     int ret = cyw43_sdio_transfer(52, arg, &resp);
     if (ret != 0) {
@@ -55,20 +59,22 @@ static int cyw43_sdio_cmd52(bool write, uint32_t fn, uint32_t addr, uint32_t val
 static int cyw43_sdio_cmd53(bool write, uint32_t fn, uint32_t addr, size_t len, uint8_t *buf) {
     uint32_t block_size;
     uint32_t block_mode;
-    size_t sz = len;
-    if (sz <= 64) {
-        // SDIO_BYTE_MODE (can go up to 512 bytes)
-        // in this case the SDIO chuck of data must be a single block of the length of buf
-        block_size = sz;
+    uint32_t len_arg;
+    if (len <= 512) {
+        // Use SDIO byte mode.
+        block_size = 1;
         block_mode = 0;
+        len = (len + CYW43_SDIO_CMD53_BYTE_MODE_DATA_ALIGN - 1) & ~(CYW43_SDIO_CMD53_BYTE_MODE_DATA_ALIGN - 1);
+        len_arg = len & 0x1ff; // 512 is represented as 0
     } else {
-        // looks like block_size must be 64
+        // Use SDIO block mode.  Block size is configured as SDIO_64B_BLOCK.
         block_size = 64;
-        block_mode = 1 << 27;
-        sz /= block_size;
+        block_mode = 1;
+        len = (len + block_size - 1) & ~(block_size - 1);
+        len_arg = len / block_size;
     }
-    uint32_t arg = fn << 28 | block_mode | 1 << 26 | (addr & 0x1ffff) << 9 | write << 31 | sz;
-    return cyw43_sdio_transfer_cmd53(write, block_size, arg, len, buf);
+    uint32_t arg = cyw43_sdio_arg_pack(write, fn, block_mode, true, addr & 0x1ffff, len_arg);
+    return cyw43_sdio_transfer_cmd53(block_size, arg, len, buf);
 }
 
 int cyw43_read_bytes(cyw43_int_t *self, uint32_t fn, uint32_t addr, size_t len, uint8_t *buf) {

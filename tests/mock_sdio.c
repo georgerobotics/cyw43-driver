@@ -94,21 +94,20 @@ int cyw43_sdio_transfer(uint32_t cmd, uint32_t arg, uint32_t *resp) {
     return 0;
 }
 
-int cyw43_sdio_transfer_cmd53(bool write, uint32_t block_size, uint32_t arg, size_t len, uint8_t *buf) {
-    printf("cyw43_sdio_transfer_cmd53(write=%d, block_size=%u, arg=%08x, len=%u)\n", write, block_size, arg, len);
+int cyw43_sdio_transfer_cmd53(uint32_t block_size, uint32_t arg, size_t len, uint8_t *buf) {
+    printf("cyw43_sdio_transfer_cmd53(block_size=%u, arg=%08x, len=%u)\n", block_size, arg, len);
 
     // Decode parameters.
-    uint32_t write_decoded = (arg >> 31) & 1;
+    uint32_t write = (arg >> 31) & 1;
     uint32_t fn = (arg >> 28) & 0x7;
     uint32_t block_mode = (arg >> 27) & 1;
     uint32_t addr = (arg >> 9) & 0x1ffff;
     uint32_t sz = arg & 0x1ff;
 
     // Validate parameters.
-    assert(write == write_decoded);
     if (block_mode == 0) {
-        assert(block_size == sz);
-        assert(sz == len);
+        assert(block_size == 1);
+        assert((sz == 0 && len == 512) || sz == len);
     } else {
         assert(block_size == 64);
         assert(sz * 64 == len);
