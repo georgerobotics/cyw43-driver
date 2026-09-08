@@ -4,16 +4,12 @@ CYW43xx WiFi SoC firmware
 This directory contains firmware patch blobs that need to be downloaded on to the
 CYW43xx SoC in order for it to function correctly.
 
-The WiFi firmware is padded to 512 bytes and then the CLM appended to that to create the combined binary file.
+The binary blobs are converted to a header file, for example:
 
-For example:
+    xxd -i cyfmac43439-sdio.bin
 
-    $ cp 43439A0.bin 43439A0_padded.bin
-    $ dd if=/dev/zero of=43439A0_padded.bin bs=1 count=1 seek=$(( ($(stat -c %s 43439A0.bin) / 512) * 512 + 512 - 1))
-    $ cat 43439A0_padded.bin 43439A0.clm_blob > 43439A0-7.95.49.00.combined
-
-This binary is then converted to a header file, e.g. xxd -i 43439A0-7.95.49.00.combined
-The macros `CYW43_WIFI_FW_LEN`, `CYW43_CLM_LEN` specify the unpadded size of the original firmware binaries in bytes.
+The macros `cyw43_chipset_firmware_blob` and `cyw43_chipset_clm_blob` are then
+defined to the firmware and CLM blob arrays respectively, and then used externally.
 
 The Bluetooth firmware binary for the 43439 (eg found on the Raspberry Pi Pico W)
 is available as a static array in `cyw43_btfw_43439.h` and has the following format:
