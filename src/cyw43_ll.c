@@ -43,6 +43,8 @@
 #include "cyw43_internal.h"
 #include "cyw43_stats.h"
 
+// Include the file containing the WiFi+CLM firmware blob as a C array.
+#include CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE
 #include CYW43_WIFI_NVRAM_INCLUDE_FILE
 
 #if CYW43_USE_SPI
@@ -62,11 +64,6 @@ extern bool enable_spi_packet_dumping;
 #define USE_KSO (1)
 
 #define CYW43_RAM_SIZE (512 * 1024)
-
-// Include the file containing the WiFi+CLM firmware blob as a C array.
-#include CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE
-
-#define CYW43_CLM_ADDR (fw_data + ALIGN_UINT(CYW43_WIFI_FW_LEN, 512))
 
 #define ALIGN_UINT(val, align) (((val) + (align) - 1) & ~((align) - 1))
 
@@ -399,11 +396,11 @@ static void cyw43_write_backplane(cyw43_int_t *self, uint32_t addr, size_t size,
     cyw43_set_backplane_window(self, CHIPCOMMON_BASE_ADDRESS);
 }
 
-static int cyw43_check_valid_chipset_firmware(cyw43_int_t *self, size_t len, uintptr_t source) {
+static int cyw43_check_valid_chipset_firmware(cyw43_int_t *self, size_t len, const uint8_t *source) {
     (void)self;
     // get the last bit of the firmware, the last 800 bytes
     uint32_t fw_end = 800;
-    const uint8_t *b = (const uint8_t *)source + len - fw_end;
+    const uint8_t *b = source + len - fw_end;
 
     // get length of trailer
     fw_end -= 16; // skip DVID trailer
@@ -424,7 +421,7 @@ static int cyw43_check_valid_chipset_firmware(cyw43_int_t *self, size_t len, uin
     return CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
 }
 
-static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t len, uintptr_t source) {
+static int cyw43_download_resource(cyw43_int_t *self, uint32_t addr, size_t len, const uint8_t *source) {
     // The calls to cyw43_write_bytes() (and cyw43_read_bytes()) require data sizes that
     // are aligned to a certain amount.
     assert(CYW43_WRITE_BYTES_PAD(len) == len);
@@ -1790,13 +1787,13 @@ alp_set:
     cyw43_write_backplane(self, SOCSRAM_BANKX_PDA, 4, 0);
 
     // Check that valid chipset firmware exists at the given source address.
-    int ret = cyw43_check_valid_chipset_firmware(self, CYW43_WIFI_FW_LEN, fw_data);
+    int ret = cyw43_check_valid_chipset_firmware(self, sizeof(cyw43_chipset_firmware_blob), cyw43_chipset_firmware_blob);
     if (ret != 0) {
         return ret;
     }
 
     // Download the main WiFi firmware blob to the 43xx device.
-    ret = cyw43_download_resource(self, 0x00000000, CYW43_WRITE_BYTES_PAD(CYW43_WIFI_FW_LEN), fw_data);
+    ret = cyw43_download_resource(self, 0x00000000, CYW43_WRITE_BYTES_PAD(sizeof(cyw43_chipset_firmware_blob)), cyw43_chipset_firmware_blob);
     if (ret != 0) {
         return ret;
     }
@@ -1804,7 +1801,7 @@ alp_set:
     // Download the NVRAM to the 43xx device.
     size_t wifi_nvram_len = CYW43_WRITE_BYTES_PAD(sizeof(wifi_nvram_4343));
     const uint8_t *wifi_nvram_data = wifi_nvram_4343;
-    cyw43_download_resource(self, CYW43_RAM_SIZE - 4 - wifi_nvram_len, wifi_nvram_len, (uintptr_t)wifi_nvram_data);
+    cyw43_download_resource(self, CYW43_RAM_SIZE - 4 - wifi_nvram_len, wifi_nvram_len, wifi_nvram_data);
     uint32_t sz = ((~(wifi_nvram_len / 4) & 0xffff) << 16) | (wifi_nvram_len / 4);
     cyw43_write_backplane(self, CYW43_RAM_SIZE - 4, 4, sz);
 
@@ -1917,7 +1914,7 @@ f2_ready:
 
     // Load the CLM data; it sits just after main firmware
     CYW43_VDEBUG("cyw43_clm_load start\n");
-    cyw43_clm_load(self, (const uint8_t *)CYW43_CLM_ADDR, CYW43_CLM_LEN);
+    cyw43_clm_load(self, cyw43_chipset_clm_blob, sizeof(cyw43_chipset_clm_blob));
     CYW43_VDEBUG("cyw43_clm_load done\n");
 
     cyw43_write_iovar_u32(self, "bus:txglom", 0, WWD_STA_INTERFACE); // tx glomming off

@@ -94,9 +94,8 @@
 #endif
 
 // This include should define:
-// - CYW43_WIFI_FW_LEN
-// - CYW43_CLM_LEN
-// - const uintptr_t fw_data
+// - a cyw43_chipset_firmware_blob[] variable,
+// - a cyw43_chipset_clm_blob[] variable.
 #ifndef CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE
 #if CYW43_ENABLE_BLUETOOTH
 #define CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE "firmware/wb43439A0_7_95_49_00_combined.h"
