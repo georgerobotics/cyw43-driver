@@ -45,11 +45,6 @@
 // - CYW43_PIN_BT_DEV_WAKE      - for BT HCI UART transport
 // - CYW43_PIN_BT_CTS           - for BT HCI UART transport, used to wait for CTS to go low
 
-// Legacy pin configuration CYW43_PIN_WL_RFSW_VDD is renamed to CYW43_PIN_RFSW_VDD.
-#ifdef CYW43_PIN_WL_RFSW_VDD
-#define CYW43_PIN_RFSW_VDD CYW43_PIN_WL_RFSW_VDD
-#endif
-
 // Firmware configuration.
 
 // Whether Bluetooth support is enabled.
