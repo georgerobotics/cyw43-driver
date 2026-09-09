@@ -33,10 +33,6 @@
 #define CYW43_SDIO_CMD53_BYTE_MODE_DATA_ALIGN (4)
 #endif
 
-#ifndef CYW43_INCLUDE_LEGACY_F1_OVERFLOW_WORKAROUND_VARIABLES
-#define CYW43_INCLUDE_LEGACY_F1_OVERFLOW_WORKAROUND_VARIABLES (0)
-#endif
-
 // The following pins can be defined, depending on the configuration:
 // - CYW43_PIN_RFSW_VDD         - RF-switch power (active high)
 // - CYW43_PIN_RFSW_SELECT      - RF-switch select
