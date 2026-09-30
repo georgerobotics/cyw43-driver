@@ -56,6 +56,7 @@
 #define CYW43_EV_DISASSOC               (11)
 #define CYW43_EV_DISASSOC_IND           (12)
 #define CYW43_EV_LINK                   (16)
+#define CYW43_EV_ROAM                   (19)
 #define CYW43_EV_PRUNE                  (23)
 #define CYW43_EV_PSK_SUP                (46)
 #define CYW43_EV_ICV_ERROR              (49)

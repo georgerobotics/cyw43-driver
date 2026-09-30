@@ -281,6 +281,7 @@ static const char *const cyw43_async_event_name_table[89] = {
     [CYW43_EV_DISASSOC] = "DISASSOC",
     [CYW43_EV_DISASSOC_IND] = "DISASSOC_IND",
     [CYW43_EV_LINK] = "LINK",
+    [CYW43_EV_ROAM] = "ROAM",
     [CYW43_EV_PSK_SUP] = "PSK_SUP",
     [CYW43_EV_ESCAN_RESULT] = "ESCAN_RESULT",
     [CYW43_EV_CSA_COMPLETE_IND] = "CSA_COMPLETE_IND",
