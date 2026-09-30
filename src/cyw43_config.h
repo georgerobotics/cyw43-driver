@@ -103,6 +103,23 @@
 #define CYW43_DEFAULT_TRACE_FLAGS (0)
 #endif
 
+// Automatic rejoin after an established STA connection is lost. Retries are
+// spaced by a delay that doubles from MIN_MS up to MAX_MS, and repeats at
+// MAX_MS thereafter. Set CYW43_AUTO_REJOIN_MIN_MS to 0 to disable.
+#ifndef CYW43_AUTO_REJOIN_MIN_MS
+#define CYW43_AUTO_REJOIN_MIN_MS (5000)
+#endif
+
+#ifndef CYW43_AUTO_REJOIN_MAX_MS
+#define CYW43_AUTO_REJOIN_MAX_MS (60000)
+#endif
+
+// A port that can schedule a poll for a later time should define this
+// Falls back to an immediate poll
+#ifndef CYW43_SCHEDULE_INTERNAL_POLL_DISPATCH_IN_MS
+#define CYW43_SCHEDULE_INTERNAL_POLL_DISPATCH_IN_MS(func, ms) cyw43_schedule_internal_poll_dispatch(func)
+#endif
+
 // Called while waiting for an incoming character on the BT HCI UART.
 #ifndef CYW43_HAL_UART_READCHAR_BLOCKING_WAIT
 #define CYW43_HAL_UART_READCHAR_BLOCKING_WAIT cyw43_delay_us(10)
