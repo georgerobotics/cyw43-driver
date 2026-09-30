@@ -73,6 +73,7 @@ void cyw43_init(cyw43_t *self) {
     cyw43_ll_init(&self->cyw43_ll, self);
 
     self->itf_state = 0;
+    self->trace_flags = CYW43_DEFAULT_TRACE_FLAGS;
     self->wifi_scan_state = 0;
     self->wifi_join_state = 0;
     self->pend_disassoc = false;

@@ -96,6 +96,13 @@
 #define CYW43_SLEEP_MAX (50)
 #endif
 
+// Value cyw43_init gives to cyw43_t::trace_flags. Set it to a combination of
+// the \ref CYW43_TRACE_ flags to have tracing on from startup; application code
+// can still write to trace_flags directly afterwards.
+#ifndef CYW43_DEFAULT_TRACE_FLAGS
+#define CYW43_DEFAULT_TRACE_FLAGS (0)
+#endif
+
 // Called while waiting for an incoming character on the BT HCI UART.
 #ifndef CYW43_HAL_UART_READCHAR_BLOCKING_WAIT
 #define CYW43_HAL_UART_READCHAR_BLOCKING_WAIT cyw43_delay_us(10)
