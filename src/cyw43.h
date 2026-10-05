@@ -111,6 +111,12 @@ typedef struct _cyw43_t {
     bool pend_disassoc;
     bool pend_rejoin;
     bool pend_rejoin_wpa;
+    bool pend_disassoc_ev;
+
+    // Automatic rejoin after an established STA connection is lost
+    bool wifi_rejoin_wanted;
+    uint32_t wifi_rejoin_delay;
+    uint32_t wifi_rejoin_time;
 
     // AP settings
     uint32_t ap_auth;

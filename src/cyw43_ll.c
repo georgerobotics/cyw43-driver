@@ -2021,7 +2021,6 @@ int cyw43_ll_wifi_on(cyw43_ll_t *self_in, uint32_t country) {
     // Clear all async events
     memset(buf + 18 + 4, 0xff, 19); // enable them all
     #define CLR_EV(b, i) b[18 + 4 + i / 8] &= ~(1 << (i % 8))
-    CLR_EV(buf, 19); // roam attempt occurred
     CLR_EV(buf, 20); // tx fail
     CLR_EV(buf, 40); // radio
     CLR_EV(buf, 44); // probe request

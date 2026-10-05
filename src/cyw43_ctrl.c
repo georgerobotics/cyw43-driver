@@ -54,6 +54,37 @@ static void cyw43_poll_func(void);
 static void cyw43_wifi_ap_init(cyw43_t *self);
 static void cyw43_wifi_ap_set_up(cyw43_t *self, bool up);
 
+// Arm the next automatic rejoin attempt
+static void cyw43_wifi_rejoin_schedule(cyw43_t *self) {
+    #if CYW43_AUTO_REJOIN_MIN_MS
+    if (!self->wifi_rejoin_wanted || self->wifi_rejoin_time != 0) {
+        return;
+    }
+    uint32_t delay = self->wifi_rejoin_delay;
+    if (delay < CYW43_AUTO_REJOIN_MIN_MS) {
+        delay = CYW43_AUTO_REJOIN_MIN_MS;
+    } else if (delay > CYW43_AUTO_REJOIN_MAX_MS) {
+        delay = CYW43_AUTO_REJOIN_MAX_MS;
+    }
+    self->wifi_rejoin_delay = delay;
+    self->wifi_rejoin_time = cyw43_hal_ticks_ms() + delay;
+    if (self->wifi_rejoin_time == 0) {
+        // Make sure wifi_rejoin_time is not zero as this means no attempt is scheduled
+        self->wifi_rejoin_time = 1;
+    }
+    CYW43_SCHEDULE_INTERNAL_POLL_DISPATCH_IN_MS(cyw43_poll_func, delay);
+    #else
+    (void)self;
+    #endif
+}
+
+// Forget any scheduled rejoin and the backoff
+static void cyw43_wifi_rejoin_reset(cyw43_t *self, bool wanted) {
+    self->wifi_rejoin_wanted = wanted;
+    self->wifi_rejoin_delay = 0;
+    self->wifi_rejoin_time = 0;
+}
+
 /*******************************************************************************/
 // Initialisation and polling
 
@@ -73,11 +104,14 @@ void cyw43_init(cyw43_t *self) {
     cyw43_ll_init(&self->cyw43_ll, self);
 
     self->itf_state = 0;
+    self->trace_flags = CYW43_DEFAULT_TRACE_FLAGS;
     self->wifi_scan_state = 0;
     self->wifi_join_state = 0;
     self->pend_disassoc = false;
     self->pend_rejoin = false;
     self->pend_rejoin_wpa = false;
+    self->pend_disassoc_ev = false;
+    cyw43_wifi_rejoin_reset(self, false);
     self->ap_channel = 3;
     self->ap_ssid_len = 0;
     self->ap_key_len = 0;
@@ -214,12 +248,25 @@ static void cyw43_poll_func(void) {
 
     if (self->pend_disassoc) {
         self->pend_disassoc = false;
+        self->pend_disassoc_ev = true;
         cyw43_ll_ioctl(&self->cyw43_ll, CYW43_IOCTL_SET_DISASSOC, 0, NULL, CYW43_ITF_STA);
     }
 
     if (self->pend_rejoin_wpa) {
         self->pend_rejoin_wpa = false;
         cyw43_ll_wifi_set_wpa_auth(&self->cyw43_ll);
+    }
+
+    if (self->wifi_rejoin_time != 0 && (int32_t)(cyw43_hal_ticks_ms() - self->wifi_rejoin_time) >= 0) {
+        self->wifi_rejoin_time = 0;
+        if (self->wifi_join_state & (WIFI_JOIN_STATE_AUTH | WIFI_JOIN_STATE_LINK | WIFI_JOIN_STATE_KEYED)) {
+            // The firmware is part way through its own attempt, so let it finish
+            cyw43_wifi_rejoin_schedule(self);
+        } else {
+            // The backoff grows per attempt
+            self->wifi_rejoin_delay *= 2;
+            self->pend_rejoin = true;
+        }
     }
 
     if (self->pend_rejoin) {
@@ -280,6 +327,7 @@ static const char *const cyw43_async_event_name_table[89] = {
     [CYW43_EV_DISASSOC] = "DISASSOC",
     [CYW43_EV_DISASSOC_IND] = "DISASSOC_IND",
     [CYW43_EV_LINK] = "LINK",
+    [CYW43_EV_ROAM] = "ROAM",
     [CYW43_EV_PSK_SUP] = "PSK_SUP",
     [CYW43_EV_ESCAN_RESULT] = "ESCAN_RESULT",
     [CYW43_EV_CSA_COMPLETE_IND] = "CSA_COMPLETE_IND",
@@ -327,7 +375,14 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
 
     } else if (ev->event_type == CYW43_EV_DISASSOC) {
         cyw43_cb_tcpip_set_link_down(self, CYW43_ITF_STA);
-        self->wifi_join_state = 0x0000;
+        if (self->pend_disassoc_ev) {
+            self->pend_disassoc_ev = false;
+            self->wifi_join_state = 0x0000;
+            cyw43_wifi_rejoin_reset(self, false);
+        } else {
+            self->wifi_join_state = WIFI_JOIN_STATE_ACTIVE;
+            cyw43_wifi_rejoin_schedule(self);
+        }
 
     #if 0
     } else if (ev->event_type == CYW43_EV_DISASSOC_IND) {
@@ -351,10 +406,12 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
         } else if (ev->status == 3 && ev->reason == 0) {
             self->wifi_join_state = WIFI_JOIN_STATE_NONET;
             // No matching SSID found (could be out of range, or down)
+            cyw43_wifi_rejoin_schedule(self);
         } else {
             // Other failure setting SSID
             CYW43_DEBUG("link error status %d\n", ev->status);
             self->wifi_join_state = WIFI_JOIN_STATE_FAIL;
+            cyw43_wifi_rejoin_schedule(self);
         }
     } else if (ev->event_type == CYW43_EV_AUTH) {
         if (ev->status == 0) {
@@ -415,6 +472,7 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
     if (self->wifi_join_state == WIFI_JOIN_STATE_ALL) {
         // STA connected
         self->wifi_join_state = WIFI_JOIN_STATE_ACTIVE;
+        cyw43_wifi_rejoin_reset(self, true);
         cyw43_cb_tcpip_set_link_up(self, CYW43_ITF_STA);
     }
 }
@@ -565,6 +623,9 @@ void cyw43_wifi_set_up(cyw43_t *self, int itf, bool up, uint32_t country) {
         if (itf == CYW43_ITF_AP) {
             cyw43_wifi_ap_set_up(self, false);
         }
+        if (itf == CYW43_ITF_STA) {
+            cyw43_wifi_rejoin_reset(self, false);
+        }
         if (self->itf_state & (1 << itf)) {
             cyw43_cb_tcpip_deinit(self, itf);
             self->itf_state &= ~(1 << itf);
@@ -640,6 +701,7 @@ int cyw43_wifi_join(cyw43_t *self, size_t ssid_len, const uint8_t *ssid, size_t 
         // Wait for responses: EV_AUTH, EV_LINK, EV_SET_SSID, EV_PSK_SUP
         // Will get EV_DEAUTH_IND if password is invalid
         self->wifi_join_state = WIFI_JOIN_STATE_ACTIVE;
+        cyw43_wifi_rejoin_reset(self, false);
 
         if (auth_type == CYW43_AUTH_OPEN) {
             // For open security we don't need EV_PSK_SUP, so set that flag indicator now
@@ -654,6 +716,10 @@ int cyw43_wifi_join(cyw43_t *self, size_t ssid_len, const uint8_t *ssid, size_t 
 
 int cyw43_wifi_leave(cyw43_t *self, int itf) {
     // Disassociate with SSID
+    if (itf == CYW43_ITF_STA) {
+        self->pend_disassoc_ev = true;
+        cyw43_wifi_rejoin_reset(self, false);
+    }
     return cyw43_ioctl(self, CYW43_IOCTL_SET_DISASSOC, 0, NULL, itf);
 }
 
