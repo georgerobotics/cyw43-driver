@@ -320,8 +320,9 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
             if (ret != 0) {
                 // TODO need to abort scan, or just ignore any more results
             }
-        } else if (ev->status == 0) {
-            // Scan complete
+        } else {
+            // Scan complete: successfully (0), aborted (4), or failed - any status that is not a
+            // partial result ends it, or the scan would stay active for good
             self->wifi_scan_state = 2;
         }
 
@@ -593,6 +594,20 @@ int cyw43_wifi_scan(cyw43_t *self, cyw43_wifi_scan_options_t *opts, void *env, i
 
     // Start the scan
     ret = cyw43_ll_wifi_scan(&self->cyw43_ll, opts);
+
+    CYW43_THREAD_EXIT;
+
+    return ret;
+}
+
+int cyw43_wifi_scan_abort(cyw43_t *self) {
+    CYW43_THREAD_ENTER;
+    if (self->wifi_scan_state != 1) {
+        CYW43_THREAD_EXIT;
+        return 0;
+    }
+
+    int ret = cyw43_ll_wifi_scan_abort(&self->cyw43_ll);
 
     CYW43_THREAD_EXIT;
 

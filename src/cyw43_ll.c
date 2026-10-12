@@ -2176,6 +2176,15 @@ int cyw43_ll_wifi_scan(cyw43_ll_t *self_in, cyw43_wifi_scan_options_t *opts) {
     return 0;
 }
 
+int cyw43_ll_wifi_scan_abort(cyw43_ll_t *self_in) {
+    cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
+
+    // the firmware ends the scan with an ESCAN_RESULT event of status ABORT (4)
+    cyw43_write_iovar_n(self, "scanabort", 0, "", WWD_STA_INTERFACE); // no data, but never a NULL source
+
+    return 0;
+}
+
 int cyw43_ll_wifi_join(cyw43_ll_t *self_in, size_t ssid_len, const uint8_t *ssid, size_t key_len, const uint8_t *key, uint32_t auth_type, const uint8_t *bssid, uint32_t channel) {
     cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
 
