@@ -367,6 +367,17 @@ int cyw43_wifi_update_multicast_filter(cyw43_t *self, uint8_t *addr, bool add);
 int cyw43_wifi_scan(cyw43_t *self, cyw43_wifi_scan_options_t *opts, void *env, int (*result_cb)(void *, const cyw43_ev_scan_result_t *));
 
 /*!
+ * \brief Stop a wifi scan in progress
+ *
+ * Asks the firmware to end the scan. It does so within a few milliseconds, with no further
+ * results, and \ref cyw43_wifi_scan_active then returns false. Nothing to do if no scan is active.
+ *
+ * \param self the driver state object. This should always be \c &cyw43_state
+ * \return 0 on success
+ */
+int cyw43_wifi_scan_abort(cyw43_t *self);
+
+/*!
  * \brief Determine if a wifi scan is in progress
  *
  * This method tells you if the scan is still in progress
