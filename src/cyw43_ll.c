@@ -1551,6 +1551,7 @@ static void cyw43_write_iovar_n(cyw43_int_t *self, const char *var, size_t len, 
 
 int cyw43_ll_bus_init(cyw43_ll_t *self_in, const uint8_t *mac) {
     cyw43_int_t *self = (void *)self_in;
+    int ret;
 
     self->startup_t0 = cyw43_hal_ticks_us();
 
@@ -1620,7 +1621,8 @@ int cyw43_ll_bus_init(cyw43_ll_t *self_in, const uint8_t *mac) {
     } while (false);
     if (!success) {
         CYW43_WARN("Failed to start CYW43\n");
-        return CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
+        ret = CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
+        goto fail;
     }
 
     #else
@@ -1633,13 +1635,15 @@ int cyw43_ll_bus_init(cyw43_ll_t *self_in, const uint8_t *mac) {
     uint32_t rca;
     if (cyw43_sdio_transfer(3, 0, &rca) != 0) {
         CYW43_WARN("SDIO enumerate error\n");
-        return CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
+        ret = CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
+        goto fail;
     }
 
     // select the card with RCA
     if (cyw43_sdio_transfer(7, rca, NULL) != 0) {
         CYW43_WARN("SDIO select error\n");
-        return CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
+        ret = CYW43_FAIL_FAST_CHECK(-CYW43_EIO);
+        goto fail;
     }
 
     // set up backplane
@@ -1654,7 +1658,8 @@ int cyw43_ll_bus_init(cyw43_ll_t *self_in, const uint8_t *mac) {
         }
     }
     CYW43_WARN("no response from CYW43\n");
-    return -CYW43_EIO;
+    ret = -CYW43_EIO;
+    goto fail;
 
 backplane_up:
     CYW43_VDEBUG("backplane is up\n");
@@ -1669,7 +1674,8 @@ backplane_up:
     reg = cyw43_read_reg_u8(self, BUS_FUNCTION, SDIOD_CCCR_BLKSIZE_0);
     if (reg != SDIO_64B_BLOCK) {
         CYW43_WARN("can't set block size\n");
-        return -CYW43_EIO;
+        ret = -CYW43_EIO;
+        goto fail;
     }
 
     cyw43_write_reg_u8(self, BUS_FUNCTION, SDIOD_CCCR_BLKSIZE_0, SDIO_64B_BLOCK);
@@ -1697,7 +1703,8 @@ backplane_up:
         cyw43_delay_ms(1);
     }
     CYW43_WARN("timeout waiting for backplane\n");
-    return -CYW43_EIO;
+    ret = -CYW43_EIO;
+    goto fail;
 backplane_ready:
 
     #endif
@@ -1716,7 +1723,8 @@ backplane_ready:
     cyw43_write_reg_u8(self, BACKPLANE_FUNCTION, SDIO_FUNCTION2_WATERMARK, 0x10);
     uint8_t reg_8 = cyw43_read_reg_u8(self, BACKPLANE_FUNCTION, SDIO_FUNCTION2_WATERMARK);
     if (reg_8 != 0x10) {
-        return -CYW43_EIO;
+        ret = -CYW43_EIO;
+        goto fail;
     }
     #endif
 
@@ -1728,7 +1736,8 @@ backplane_ready:
         cyw43_delay_ms(1);
     }
     CYW43_WARN("timeout waiting for ALP to be set\n");
-    return -CYW43_EIO;
+    ret = -CYW43_EIO;
+    goto fail;
 
 alp_set:
     CYW43_VDEBUG("ALP is set\n");
@@ -1762,15 +1771,15 @@ alp_set:
     cyw43_write_backplane(self, SOCSRAM_BANKX_PDA, 4, 0);
 
     // Check that valid chipset firmware exists at the given source address.
-    int ret = cyw43_check_valid_chipset_firmware(self, sizeof(cyw43_chipset_firmware_blob), cyw43_chipset_firmware_blob);
+    ret = cyw43_check_valid_chipset_firmware(self, sizeof(cyw43_chipset_firmware_blob), cyw43_chipset_firmware_blob);
     if (ret != 0) {
-        return ret;
+        goto fail;
     }
 
     // Download the main WiFi firmware blob to the 43xx device.
     ret = cyw43_download_resource(self, 0x00000000, CYW43_WRITE_BYTES_PAD(sizeof(cyw43_chipset_firmware_blob)), cyw43_chipset_firmware_blob);
     if (ret != 0) {
-        return ret;
+        goto fail;
     }
 
     // Download the NVRAM to the 43xx device.
@@ -1792,7 +1801,8 @@ alp_set:
         cyw43_delay_ms(1);
     }
     CYW43_WARN("HT not ready\n");
-    return -CYW43_EIO;
+    ret = -CYW43_EIO;
+    goto fail;
 
 ht_ready:
 
@@ -1834,7 +1844,8 @@ ht_ready:
         cyw43_delay_ms(1);
     }
     CYW43_WARN("F2 not ready\n");
-    return -CYW43_EIO;
+    ret = -CYW43_EIO;
+    goto fail;
 
 f2_ready:
 
@@ -1919,6 +1930,12 @@ f2_ready:
     }
 
     return 0;
+
+fail:
+    // Note: CYW43_FAIL_FAST_CHECK() stays at each site rather than moving here, since it is designed
+    // to locate the failure point.
+    cyw43_ll_deinit(self_in);
+    return ret;
 }
 
 /*******************************************************************************/
