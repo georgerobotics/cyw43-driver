@@ -920,7 +920,12 @@ struct sdpcm_bdc_header_t {
     uint8_t data_offset;
 };
 
-int cyw43_ll_send_ethernet(cyw43_ll_t *self_in, int itf, size_t len, const void *buf, bool is_pbuf) {
+#if CYW43_ETH_SUPPORT_PBUF
+int cyw43_ll_send_ethernet(cyw43_ll_t *self_in, int itf, size_t len, const void *buf, bool is_pbuf)
+#else
+int cyw43_ll_send_ethernet(cyw43_ll_t *self_in, int itf, size_t len, const void *buf)
+#endif
+{
     cyw43_int_t *self = CYW_INT_FROM_LL(self_in);
 
     if (SDPCM_HEADER_LEN + 2 + sizeof(struct sdpcm_bdc_header_t) + len > sizeof(self->spid_buf)) {
@@ -937,9 +942,12 @@ int cyw43_ll_send_ethernet(cyw43_ll_t *self_in, int itf, size_t len, const void 
     header->data_offset = 0;
 
     // copy in payload
+    #if CYW43_ETH_SUPPORT_PBUF
     if (is_pbuf) {
         pbuf_copy_partial((const struct pbuf *)buf, self->spid_buf + SDPCM_HEADER_LEN + 6, len, 0);
-    } else {
+    } else
+    #endif
+    {
         memmove(self->spid_buf + SDPCM_HEADER_LEN + 6, buf, len);
     }
 
