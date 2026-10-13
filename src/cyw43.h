@@ -77,6 +77,7 @@
 #define CYW43_LINK_FAIL         (-1)    ///< Connection failed
 #define CYW43_LINK_NONET        (-2)    ///< No matching SSID found (could be out of range, or down)
 #define CYW43_LINK_BADAUTH      (-3)    ///< Authenticatation failure
+#define CYW43_LINK_ENCR_MISMATCH (-4)   ///< Network encryption does not match the requested security mode
 //!\}
 
 /*!
@@ -103,6 +104,9 @@ typedef struct _cyw43_t {
     // State for async events
     volatile uint32_t wifi_scan_state;
     uint32_t wifi_join_state;
+    uint32_t wifi_join_result; // Latched terminal result of the current join attempt
+    bool wifi_join_in_progress; // Initial join is waiting for completion events
+    bool wifi_join_established; // Successful join session remains active until leave or a new join
     void *wifi_scan_env;
     int (*wifi_scan_cb)(void *, const cyw43_ev_scan_result_t *);
 
@@ -299,6 +303,7 @@ int cyw43_wifi_get_pm(cyw43_t *self, uint32_t *pm);
  * CYW43_LINK_FAIL    | Connection failed
  * CYW43_LINK_NONET   | No matching SSID found (could be out of range, or down)
  * CYW43_LINK_BADAUTH | Authenticatation failure
+ * CYW43_LINK_ENCR_MISMATCH | Network encryption does not match the requested security mode
  *
  * \note If the link status is negative it indicates an error
  * The wifi link status for the interface CYW43_ITF_AP is always CYW43_LINK_DOWN
@@ -719,6 +724,7 @@ void cyw43_cb_tcpip_set_link_down(cyw43_t *self, int itf);
  * CYW43_LINK_FAIL    | Connection failed
  * CYW43_LINK_NONET   | No matching SSID found (could be out of range, or down)
  * CYW43_LINK_BADAUTH | Authenticatation failure
+ * CYW43_LINK_ENCR_MISMATCH | Network encryption does not match the requested security mode
  *
  * \param self the driver state object. This should always be \c &cyw43_state
  * \param itf the interface for which to return the link status, should be CYW43_ITF_STA or CYW43_ITF_AP
