@@ -213,10 +213,14 @@ int cyw43_ioctl_get_u32(cyw43_t *self, uint32_t cmd, uint32_t *out_val, uint32_t
  * \param itf interface to use, either CYW43_ITF_STA or CYW43_ITF_AP
  * \param len the amount of data to send
  * \param buf the data to send
- * \param is_pbuf true if buf points to an lwip struct pbuf
+ * \param is_pbuf true if buf points to an lwip struct pbuf (available if CYW43_ETH_SUPPORT_PBUF enabled)
  * \return 0 on success
  */
+#if CYW43_ETH_SUPPORT_PBUF
 int cyw43_send_ethernet(cyw43_t *self, int itf, size_t len, const void *buf, bool is_pbuf);
+#else
+int cyw43_send_ethernet(cyw43_t *self, int itf, size_t len, const void *buf);
+#endif
 
 /*!
  * \brief Set the WiFi interference mitigation mode

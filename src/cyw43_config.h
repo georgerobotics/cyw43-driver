@@ -108,6 +108,11 @@
 #define CYW43_LWIP (1)
 #endif
 
+// Whether `cyw43_send_ethernet()` supports passing in an lwIP pbuf.
+#ifndef CYW43_ETH_SUPPORT_PBUF
+#define CYW43_ETH_SUPPORT_PBUF (CYW43_LWIP)
+#endif
+
 #ifndef CYW43_NETUTILS
 #define CYW43_NETUTILS (0)
 #endif
