@@ -371,8 +371,8 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
     #endif
 
     } else if (ev->event_type == CYW43_EV_DISASSOC_IND && ev->interface == CYW43_ITF_STA
-        && ev->status == CYW43_STATUS_SUCCESS && ev->reason == CYW43_REASON_DEAUTH
-        && self->wifi_join_in_progress) {
+               && ev->status == CYW43_STATUS_SUCCESS && ev->reason == CYW43_REASON_DEAUTH
+               && self->wifi_join_in_progress) {
         // Authentication and association succeeded, but the secure key exchange did not complete.
         uint32_t security_state = self->wifi_join_state & (WIFI_JOIN_STATE_AUTH | WIFI_JOIN_STATE_LINK | WIFI_JOIN_STATE_KEYED);
         uint32_t result = security_state == (WIFI_JOIN_STATE_AUTH | WIFI_JOIN_STATE_LINK) ? WIFI_JOIN_STATE_BADAUTH : WIFI_JOIN_STATE_FAIL;
@@ -473,7 +473,7 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
                 cyw43_wifi_schedule_rejoin(self);
             }
         } else if ((ev->status == CYW43_SUP_KEYXCHANGE_WAIT_M1 || ev->status == CYW43_SUP_KEYXCHANGE_WAIT_G1)
-            && ev->reason == CYW43_REASON_SUP_WPA_PSK_TMO) {
+                   && ev->reason == CYW43_REASON_SUP_WPA_PSK_TMO) {
             if (self->wifi_join_in_progress) {
                 cyw43_wifi_join_set_result(self, WIFI_JOIN_STATE_FAIL);
             } else if (self->wifi_join_established) {
