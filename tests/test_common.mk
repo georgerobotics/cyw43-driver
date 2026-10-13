@@ -38,7 +38,7 @@ test: $(BUILD)/test
 	./$(BUILD)/test | diff - test.exp
 
 $(BUILD)/test: $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 vpath %.c . $(CYW43_TOP)
 $(BUILD)/%.o: %.c

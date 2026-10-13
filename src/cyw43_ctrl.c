@@ -28,16 +28,18 @@
 #endif
 #endif
 
-// Bits 0-3 are an enumeration, while bits 8-11 are flags.
+// Bits 0-3 are an enumeration, while bits 8-12 are flags.
 #define WIFI_JOIN_STATE_KIND_MASK (0x000f)
 #define WIFI_JOIN_STATE_ACTIVE  (0x0001)
 #define WIFI_JOIN_STATE_FAIL    (0x0002)
 #define WIFI_JOIN_STATE_NONET   (0x0003)
 #define WIFI_JOIN_STATE_BADAUTH (0x0004)
+#define WIFI_JOIN_STATE_ENCR_MISMATCH (0x0005)
 #define WIFI_JOIN_STATE_AUTH    (0x0200)
 #define WIFI_JOIN_STATE_LINK    (0x0400)
 #define WIFI_JOIN_STATE_KEYED   (0x0800)
 #define WIFI_JOIN_STATE_ALL     (0x0e01)
+#define WIFI_JOIN_STATE_PRUNE_ENCR_MISMATCH (0x1000)
 
 #define CYW43_STA_IS_ACTIVE(self) (((self)->itf_state >> CYW43_ITF_STA) & 1)
 #define CYW43_AP_IS_ACTIVE(self) (((self)->itf_state >> CYW43_ITF_AP) & 1)
@@ -53,6 +55,28 @@ uint32_t cyw43_sleep;
 static void cyw43_poll_func(void);
 static void cyw43_wifi_ap_init(cyw43_t *self);
 static void cyw43_wifi_ap_set_up(cyw43_t *self, bool up);
+
+static void cyw43_wifi_join_set_result(cyw43_t *self, uint32_t result) {
+    if (self->wifi_join_in_progress && self->wifi_join_result == 0) {
+        self->wifi_join_result = result;
+        self->wifi_join_state = result;
+        self->wifi_join_in_progress = false;
+        self->wifi_join_established = false;
+        self->pend_rejoin = false;
+        self->pend_rejoin_wpa = false;
+        self->pend_disassoc = true;
+        cyw43_schedule_internal_poll_dispatch(cyw43_poll_func);
+    }
+}
+
+static bool cyw43_wifi_join_event_expected(const cyw43_t *self) {
+    return self->wifi_join_in_progress || self->wifi_join_established;
+}
+
+static void cyw43_wifi_schedule_rejoin(cyw43_t *self) {
+    self->pend_rejoin = true;
+    cyw43_schedule_internal_poll_dispatch(cyw43_poll_func);
+}
 
 /*******************************************************************************/
 // Initialisation and polling
@@ -75,6 +99,9 @@ void cyw43_init(cyw43_t *self) {
     self->itf_state = 0;
     self->wifi_scan_state = 0;
     self->wifi_join_state = 0;
+    self->wifi_join_result = 0;
+    self->wifi_join_in_progress = false;
+    self->wifi_join_established = false;
     self->pend_disassoc = false;
     self->pend_rejoin = false;
     self->pend_rejoin_wpa = false;
@@ -327,7 +354,13 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
 
     } else if (ev->event_type == CYW43_EV_DISASSOC) {
         cyw43_cb_tcpip_set_link_down(self, CYW43_ITF_STA);
-        self->wifi_join_state = 0x0000;
+        if (self->wifi_join_result == 0) {
+            if (ev->interface == CYW43_ITF_STA && self->wifi_join_in_progress) {
+                cyw43_wifi_join_set_result(self, WIFI_JOIN_STATE_FAIL);
+            } else if (self->wifi_join_established) {
+                self->wifi_join_state = 0x0000;
+            }
+        }
 
     #if 0
     } else if (ev->event_type == CYW43_EV_DISASSOC_IND) {
@@ -337,26 +370,56 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
         }
     #endif
 
+    } else if (ev->event_type == CYW43_EV_DISASSOC_IND && ev->interface == CYW43_ITF_STA
+               && ev->status == CYW43_STATUS_SUCCESS && ev->reason == CYW43_REASON_DEAUTH
+               && self->wifi_join_in_progress) {
+        // Authentication and association succeeded, but the secure key exchange did not complete.
+        uint32_t security_state = self->wifi_join_state & (WIFI_JOIN_STATE_AUTH | WIFI_JOIN_STATE_LINK | WIFI_JOIN_STATE_KEYED);
+        uint32_t result = security_state == (WIFI_JOIN_STATE_AUTH | WIFI_JOIN_STATE_LINK) ? WIFI_JOIN_STATE_BADAUTH : WIFI_JOIN_STATE_FAIL;
+        cyw43_wifi_join_set_result(self, result);
+
         // WiFi join events
     } else if (ev->event_type == CYW43_EV_PRUNE) {
-        if (ev->status == 0 && ev->reason == 8) {
-            // RSN mismatch, retry join with WPA auth
-            self->pend_rejoin = true;
-            self->pend_rejoin_wpa = true;
-            cyw43_schedule_internal_poll_dispatch(cyw43_poll_func);
+        if (ev->status == CYW43_STATUS_SUCCESS && ev->reason == CYW43_REASON_PRUNE_ENCR_MISMATCH) {
+            // Another BSSID may still match this join.
+            if (self->wifi_join_in_progress) {
+                self->wifi_join_state |= WIFI_JOIN_STATE_PRUNE_ENCR_MISMATCH;
+            }
+        } else if (ev->status == CYW43_STATUS_SUCCESS && ev->reason == CYW43_REASON_RSN_MISMATCH) {
+            if (self->wifi_join_in_progress) {
+                cyw43_wifi_join_set_result(self, WIFI_JOIN_STATE_FAIL);
+            } else if (self->wifi_join_established) {
+                // Preserve post-connection recovery with WPA auth.
+                self->pend_rejoin_wpa = true;
+                cyw43_wifi_schedule_rejoin(self);
+            }
         }
-    } else if (ev->event_type == CYW43_EV_SET_SSID) {
+    } else if (ev->event_type == CYW43_EV_SET_SSID && cyw43_wifi_join_event_expected(self)) {
         if (ev->status == 0) {
             // Success setting SSID
         } else if (ev->status == 3 && ev->reason == 0) {
-            self->wifi_join_state = WIFI_JOIN_STATE_NONET;
+            if (self->wifi_join_in_progress) {
+                cyw43_wifi_join_set_result(self, WIFI_JOIN_STATE_NONET);
+            } else {
+                self->wifi_join_state = WIFI_JOIN_STATE_NONET;
+            }
             // No matching SSID found (could be out of range, or down)
         } else {
             // Other failure setting SSID
             CYW43_DEBUG("link error status %d\n", ev->status);
-            self->wifi_join_state = WIFI_JOIN_STATE_FAIL;
+            if (self->wifi_join_in_progress) {
+                uint32_t result = (self->wifi_join_state & WIFI_JOIN_STATE_PRUNE_ENCR_MISMATCH)
+                    ? WIFI_JOIN_STATE_ENCR_MISMATCH : WIFI_JOIN_STATE_FAIL;
+                cyw43_wifi_join_set_result(self, result);
+            } else {
+                self->wifi_join_state = WIFI_JOIN_STATE_FAIL;
+            }
         }
-    } else if (ev->event_type == CYW43_EV_AUTH) {
+    } else if (ev->event_type == CYW43_EV_AUTH && cyw43_wifi_join_event_expected(self)) {
+        if (self->wifi_join_in_progress) {
+            // This candidate passed security selection.
+            self->wifi_join_state &= ~WIFI_JOIN_STATE_PRUNE_ENCR_MISMATCH;
+        }
         if (ev->status == 0) {
             if ((self->wifi_join_state & WIFI_JOIN_STATE_KIND_MASK) == WIFI_JOIN_STATE_BADAUTH) {
                 // A good-auth follows a bad-auth, so change the join state back to active.
@@ -371,9 +434,13 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
         } else {
             // Cannot authenticate
             CYW43_DEBUG("auth error status %d\n", ev->status);
-            self->wifi_join_state = WIFI_JOIN_STATE_BADAUTH;
+            if (self->wifi_join_in_progress) {
+                cyw43_wifi_join_set_result(self, WIFI_JOIN_STATE_BADAUTH);
+            } else {
+                self->wifi_join_state = WIFI_JOIN_STATE_BADAUTH;
+            }
         }
-    } else if (ev->event_type == CYW43_EV_DEAUTH_IND) {
+    } else if (ev->event_type == CYW43_EV_DEAUTH_IND && cyw43_wifi_join_event_expected(self)) {
         if (ev->status == 0 && ev->reason == 2) {
             // Deauth, probably because password was wrong; disassociate
             self->pend_disassoc = true;
@@ -384,7 +451,9 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
             if (ev->flags & 1) {
                 // Link is up
                 if (ev->interface == CYW43_ITF_STA) {
-                    self->wifi_join_state |= WIFI_JOIN_STATE_LINK;
+                    if (cyw43_wifi_join_event_expected(self)) {
+                        self->wifi_join_state |= WIFI_JOIN_STATE_LINK;
+                    }
                 } else {
                     cyw43_cb_tcpip_set_link_up(self, ev->interface);
                 }
@@ -393,28 +462,50 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
                 cyw43_cb_tcpip_set_link_down(self, ev->interface);
             }
         }
-    } else if (ev->event_type == CYW43_EV_PSK_SUP) {
-        if (ev->status == 6) { // WLC_SUP_KEYED
+    } else if (ev->event_type == CYW43_EV_PSK_SUP && cyw43_wifi_join_event_expected(self)) {
+        if (ev->status == CYW43_SUP_KEYED) {
             self->wifi_join_state |= WIFI_JOIN_STATE_KEYED;
-        } else if ((ev->status == 4 || ev->status == 8 || ev->status == 10) && ev->reason == 15) {
-            // Timeout waiting for key exchange M1/M3/G1
-            // Probably at edge of the cell, retry
-            self->pend_rejoin = true;
-            cyw43_schedule_internal_poll_dispatch(cyw43_poll_func);
+        } else if (ev->status == CYW43_SUP_KEYXCHANGE_WAIT_M3 && ev->reason == CYW43_REASON_SUP_WPA_PSK_TMO) {
+            // An M3 timeout indicates that the passphrase may be incorrect.
+            if (self->wifi_join_in_progress) {
+                cyw43_wifi_join_set_result(self, WIFI_JOIN_STATE_BADAUTH);
+            } else if (self->wifi_join_established) {
+                cyw43_wifi_schedule_rejoin(self);
+            }
+        } else if ((ev->status == CYW43_SUP_KEYXCHANGE_WAIT_M1 || ev->status == CYW43_SUP_KEYXCHANGE_WAIT_G1)
+                   && ev->reason == CYW43_REASON_SUP_WPA_PSK_TMO) {
+            if (self->wifi_join_in_progress) {
+                cyw43_wifi_join_set_result(self, WIFI_JOIN_STATE_FAIL);
+            } else if (self->wifi_join_established) {
+                cyw43_wifi_schedule_rejoin(self);
+            }
         } else {
             // PSK_SUP failure
             CYW43_DEBUG("auth psk status %d\n", ev->status);
-            self->wifi_join_state = WIFI_JOIN_STATE_BADAUTH;
+            if (self->wifi_join_in_progress) {
+                cyw43_wifi_join_set_result(self, WIFI_JOIN_STATE_BADAUTH);
+            } else {
+                self->wifi_join_state = WIFI_JOIN_STATE_BADAUTH;
+            }
         }
-    } else if (ev->event_type == CYW43_EV_ICV_ERROR) {
-        self->pend_rejoin = true;
-        self->pend_rejoin_wpa = false;
-        cyw43_schedule_internal_poll_dispatch(cyw43_poll_func);
+    } else if (ev->event_type == CYW43_EV_ICV_ERROR && cyw43_wifi_join_event_expected(self)) {
+        if (self->wifi_join_in_progress) {
+            cyw43_wifi_join_set_result(self, WIFI_JOIN_STATE_FAIL);
+        } else if (self->wifi_join_established) {
+            self->pend_rejoin_wpa = false;
+            cyw43_wifi_schedule_rejoin(self);
+        }
     }
 
-    if (self->wifi_join_state == WIFI_JOIN_STATE_ALL) {
+    if (self->wifi_join_result == 0
+        && (self->wifi_join_state & ~WIFI_JOIN_STATE_PRUNE_ENCR_MISMATCH) == WIFI_JOIN_STATE_ALL) {
         // STA connected
         self->wifi_join_state = WIFI_JOIN_STATE_ACTIVE;
+        self->wifi_join_in_progress = false;
+        self->wifi_join_established = true;
+        self->pend_disassoc = false;
+        self->pend_rejoin = false;
+        self->pend_rejoin_wpa = false;
         cyw43_cb_tcpip_set_link_up(self, CYW43_ITF_STA);
     }
 }
@@ -601,7 +692,7 @@ int cyw43_wifi_scan(cyw43_t *self, cyw43_wifi_scan_options_t *opts, void *env, i
 
 int cyw43_wifi_link_status(cyw43_t *self, int itf) {
     if (itf == CYW43_ITF_STA) {
-        int s = self->wifi_join_state & WIFI_JOIN_STATE_KIND_MASK;
+        int s = self->wifi_join_result != 0 ? self->wifi_join_result : self->wifi_join_state & WIFI_JOIN_STATE_KIND_MASK;
         if (s == WIFI_JOIN_STATE_ACTIVE) {
             return CYW43_LINK_JOIN;
         } else if (s == WIFI_JOIN_STATE_FAIL) {
@@ -610,6 +701,8 @@ int cyw43_wifi_link_status(cyw43_t *self, int itf) {
             return CYW43_LINK_NONET;
         } else if (s == WIFI_JOIN_STATE_BADAUTH) {
             return CYW43_LINK_BADAUTH;
+        } else if (s == WIFI_JOIN_STATE_ENCR_MISMATCH) {
+            return CYW43_LINK_ENCR_MISMATCH;
         } else {
             return CYW43_LINK_DOWN;
         }
@@ -640,6 +733,12 @@ int cyw43_wifi_join(cyw43_t *self, size_t ssid_len, const uint8_t *ssid, size_t 
         // Wait for responses: EV_AUTH, EV_LINK, EV_SET_SSID, EV_PSK_SUP
         // Will get EV_DEAUTH_IND if password is invalid
         self->wifi_join_state = WIFI_JOIN_STATE_ACTIVE;
+        self->wifi_join_result = 0;
+        self->wifi_join_in_progress = true;
+        self->wifi_join_established = false;
+        self->pend_disassoc = false;
+        self->pend_rejoin = false;
+        self->pend_rejoin_wpa = false;
 
         if (auth_type == CYW43_AUTH_OPEN) {
             // For open security we don't need EV_PSK_SUP, so set that flag indicator now
@@ -653,8 +752,27 @@ int cyw43_wifi_join(cyw43_t *self, size_t ssid_len, const uint8_t *ssid, size_t 
 }
 
 int cyw43_wifi_leave(cyw43_t *self, int itf) {
+    CYW43_THREAD_ENTER;
+    int ret = cyw43_ensure_up(self);
+    if (ret) {
+        CYW43_THREAD_EXIT;
+        return ret;
+    }
+
     // Disassociate with SSID
-    return cyw43_ioctl(self, CYW43_IOCTL_SET_DISASSOC, 0, NULL, itf);
+    ret = cyw43_ll_ioctl(&self->cyw43_ll, CYW43_IOCTL_SET_DISASSOC, 0, NULL, itf);
+    if (ret == 0 && itf == CYW43_ITF_STA) {
+        self->wifi_join_state = 0;
+        self->wifi_join_result = 0;
+        self->wifi_join_in_progress = false;
+        self->wifi_join_established = false;
+        self->pend_disassoc = false;
+        self->pend_rejoin = false;
+        self->pend_rejoin_wpa = false;
+    }
+    CYW43_THREAD_EXIT;
+
+    return ret;
 }
 
 int cyw43_wifi_set_roam_enabled(cyw43_t *self, bool enabled) {
