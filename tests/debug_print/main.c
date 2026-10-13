@@ -1,16 +1,6 @@
 #include "src/cyw43.h"
 #include "src/cyw43_country.h"
 
-struct pbuf;
-
-uint16_t pbuf_copy_partial(const struct pbuf *p, void *dataptr, uint16_t len, uint16_t offset) {
-    (void)p;
-    (void)dataptr;
-    (void)len;
-    (void)offset;
-    return 0;
-}
-
 void cyw43_cb_tcpip_init(cyw43_t *self, int itf) {
     (void)self;
     (void)itf;
