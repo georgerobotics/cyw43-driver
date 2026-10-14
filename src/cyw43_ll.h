@@ -280,7 +280,11 @@ int cyw43_ll_bus_init(cyw43_ll_t *self, const uint8_t *mac);
 void cyw43_ll_bus_sleep(cyw43_ll_t *self, bool can_sleep);
 void cyw43_ll_process_packets(cyw43_ll_t *self);
 int cyw43_ll_ioctl(cyw43_ll_t *self, uint32_t cmd, size_t len, uint8_t *buf, uint32_t iface);
+#if CYW43_ETH_SUPPORT_PBUF
 int cyw43_ll_send_ethernet(cyw43_ll_t *self, int itf, size_t len, const void *buf, bool is_pbuf);
+#else
+int cyw43_ll_send_ethernet(cyw43_ll_t *self, int itf, size_t len, const void *buf);
+#endif
 
 int cyw43_ll_wifi_on(cyw43_ll_t *self, uint32_t country);
 int cyw43_ll_wifi_pm(cyw43_ll_t *self, uint32_t pm, uint32_t pm_sleep_ret, uint32_t li_bcn, uint32_t li_dtim, uint32_t li_assoc);

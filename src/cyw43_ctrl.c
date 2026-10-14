@@ -444,7 +444,12 @@ int cyw43_ioctl_get_u32(cyw43_t *self, uint32_t cmd, uint32_t *out_val, uint32_t
     return cyw43_ioctl(self, cmd, sizeof(*out_val), (uint8_t *)out_val, iface);
 }
 
-int cyw43_send_ethernet(cyw43_t *self, int itf, size_t len, const void *buf, bool is_pbuf) {
+#if CYW43_ETH_SUPPORT_PBUF
+int cyw43_send_ethernet(cyw43_t *self, int itf, size_t len, const void *buf, bool is_pbuf)
+#else
+int cyw43_send_ethernet(cyw43_t *self, int itf, size_t len, const void *buf)
+#endif
+{
     CYW43_THREAD_ENTER;
     int ret = cyw43_ensure_up(self);
     if (ret) {
@@ -452,7 +457,12 @@ int cyw43_send_ethernet(cyw43_t *self, int itf, size_t len, const void *buf, boo
         return ret;
     }
 
+    #if CYW43_LETH_SUPPORT_PBUF
     ret = cyw43_ll_send_ethernet(&self->cyw43_ll, itf, len, buf, is_pbuf);
+    #else
+    ret = cyw43_ll_send_ethernet(&self->cyw43_ll, itf, len, buf);
+    #endif
+
     CYW43_THREAD_EXIT;
 
     return ret;
