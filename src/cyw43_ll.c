@@ -66,6 +66,10 @@ static const int host_interrupt_pin_active = 0;
 uint32_t cyw43_stats[CYW43_STAT_LAST];
 #endif
 
+static inline uint16_t cyw43_get_le16(const uint8_t *buf) {
+    return buf[0] | buf[1] << 8;
+}
+
 static inline uint32_t cyw43_get_le32(const uint8_t *buf) {
     return buf[0] | buf[1] << 8 | buf[2] << 16 | buf[3] << 24;
 }
@@ -598,7 +602,7 @@ static uint32_t cyw43_ll_wifi_parse_ie_auth(uint8_t *ie, int wpa) {
     }
 
     /* Pairwise cipher suites */
-    pairwise_cipher_cnt = *(uint16_t *)(&ie[IE_AUTH_PAIRWISE_CIPHER_COUNT_OFFSET]);
+    pairwise_cipher_cnt = cyw43_get_le16(&ie[IE_AUTH_PAIRWISE_CIPHER_COUNT_OFFSET]);
     idx = IE_AUTH_PAIRWISE_CIPHER_COUNT_OFFSET + 2;
     for (int i = 0; i < pairwise_cipher_cnt; i++) {
         if (memcmp(&ie[idx], oui, IEEE_802_11_OUI_LEN)) {
@@ -620,7 +624,7 @@ static uint32_t cyw43_ll_wifi_parse_ie_auth(uint8_t *ie, int wpa) {
     }
 
     /* AKM suites */
-    akm_cnt = *(uint16_t *)(&ie[idx]);
+    akm_cnt = cyw43_get_le16(&ie[idx]);
     idx += 2;
     for (int i = 0; i < akm_cnt; i++) {
         if (memcmp(&ie[idx], oui, IEEE_802_11_OUI_LEN)) {
