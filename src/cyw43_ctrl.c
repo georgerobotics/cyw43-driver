@@ -214,7 +214,9 @@ static void cyw43_poll_func(void) {
     }
 
     if (self->pend_disassoc) {
+        // Host-initiated disassociation: clear state and send DISASSOC.
         self->pend_disassoc = false;
+        self->wifi_join_state = 0x0000;
         cyw43_ll_ioctl(&self->cyw43_ll, CYW43_IOCTL_SET_DISASSOC, 0, NULL, CYW43_ITF_STA);
     }
 
@@ -327,9 +329,12 @@ void cyw43_cb_process_async_event(void *cb_data, const cyw43_async_event_t *ev) 
             self->wifi_scan_state = 2;
         }
 
-    } else if (ev->event_type == CYW43_EV_DISASSOC) {
+    } else if (ev->event_type == CYW43_EV_DISASSOC && ev->interface == CYW43_ITF_STA) {
         cyw43_cb_tcpip_set_link_down(self, CYW43_ITF_STA);
-        self->wifi_join_state = 0x0000;
+        if ((self->wifi_join_state & WIFI_JOIN_STATE_KIND_MASK) == WIFI_JOIN_STATE_ACTIVE) {
+            // Firmware-initiated disassociation: restart the join state.
+            self->wifi_join_state = WIFI_JOIN_STATE_ACTIVE;
+        }
 
     #if 0
     } else if (ev->event_type == CYW43_EV_DISASSOC_IND) {
@@ -665,8 +670,14 @@ int cyw43_wifi_join(cyw43_t *self, size_t ssid_len, const uint8_t *ssid, size_t 
 }
 
 int cyw43_wifi_leave(cyw43_t *self, int itf) {
+    CYW43_THREAD_ENTER;
+    if (itf == CYW43_ITF_STA) {
+        self->wifi_join_state = 0x0000;
+    }
     // Disassociate with SSID
-    return cyw43_ioctl(self, CYW43_IOCTL_SET_DISASSOC, 0, NULL, itf);
+    int ret = cyw43_ioctl(self, CYW43_IOCTL_SET_DISASSOC, 0, NULL, itf);
+    CYW43_THREAD_EXIT;
+    return ret;
 }
 
 int cyw43_wifi_set_roam_enabled(cyw43_t *self, bool enabled) {
