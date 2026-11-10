@@ -459,7 +459,7 @@ int cyw43_send_ethernet(cyw43_t *self, int itf, size_t len, const void *buf)
         return ret;
     }
 
-    #if CYW43_LETH_SUPPORT_PBUF
+    #if CYW43_ETH_SUPPORT_PBUF
     ret = cyw43_ll_send_ethernet(&self->cyw43_ll, itf, len, buf, is_pbuf);
     #else
     ret = cyw43_ll_send_ethernet(&self->cyw43_ll, itf, len, buf);
