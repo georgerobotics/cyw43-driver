@@ -111,6 +111,7 @@ typedef struct _cyw43_t {
     bool pend_disassoc;
     bool pend_rejoin;
     bool pend_rejoin_wpa;
+    bool pend_disassoc_ev;
 
     // AP settings
     uint32_t ap_auth;
