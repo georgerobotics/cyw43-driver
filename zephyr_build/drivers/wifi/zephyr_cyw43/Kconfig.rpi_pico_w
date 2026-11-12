@@ -1,0 +1,77 @@
+# Raspberry Pi Pico W WiFi driver options
+
+# Copyright (c) 2023 Beechwoods Software
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig WIFI_ZEPHYR_CYW43
+	bool "Infineon CYW43 Wifi support"
+	default y
+	select NET_L2_WIFI_MGMT
+	select WIFI_USE_NATIVE_NETWORKING
+
+	select GPIO
+	#select SPI
+	#select SPI_RPI_PICO_PIO	
+        select PICOSDK_USE_PIO # This can be removed once Zephyr PIO-SPI works
+	
+#if WIFI_ZEPHYR_CYW43
+config WIFI_ZEPHYR_CYW43_SHELL
+	bool "CYW43 shell"
+	depends on SHELL
+	help
+	  Enable CYW43 shell
+
+config WIFI_CYW43_USE_CYW4343W
+	bool "Use Infineon CYW4343W chip"
+	help
+		Use firmware for the CYW4343W chip in place of
+		the CYW43439 on the Raspberry Pi Pico W.
+
+config USE_PICOWI_PIOSPI
+        bool "Use picowi PIO-SPI, but nothing else"
+	default n
+
+config LED_INIT_PRIORITY
+    int "Wifi led driver init priority"
+    default 80
+
+# Power Save params
+
+config WIFI_ZEPHYR_CYW43_POWERSAVE_MODE
+	int "Powersave Mode (0 - off, 1 - PM1(aggressive), 2 - PM2(perfomrance)"
+	range 0 2
+	default 0
+	help
+	  This chooses the basic powersave mode of the cyw43. PM1 saves more power, but
+	  reduces throughput. PM2 doesn't significantly reduce throughput.
+
+config WIFI_ZEPHYR_CYW43_POWERSAVE_PM2_SLEEP_RET_MS
+	int "Powersave sleep return time (0-255 x 10ms)"
+	range 0 255
+	default 200
+	help
+	   The maximum time to wait before going back to sleep for CYW43_PM2_POWERSAVE_MODE mode.
+
+config WIFI_ZEPHYR_CYW43_POWERSAVE_LI_BEACON_PERIOD
+	int "Wake period (0-15)"
+	range 0 15
+	default 1
+	help
+	   Wake period is measured in beacon period.
+
+config WIFI_ZEPHYR_CYW43_POWERSAVE_LI_DTIM_PERIOD
+	int "Wake period (0-15)"
+	range 0 15
+	default 1
+	help
+	   Wake interval measured in DTIMs. If this is set to 0, the wake interval is measured in beacon periods.
+
+config WIFI_ZEPHYR_CYW43_POWERSAVE_LI_ASSOC
+	int "Wake interval (0-15)"
+	range 0 15
+	default 10
+	help
+	   Wake interval sent to the access point.
+
+
+#endif
