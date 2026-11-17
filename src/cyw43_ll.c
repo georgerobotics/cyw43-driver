@@ -705,7 +705,8 @@ static void cyw43_ll_wifi_parse_scan_result(cyw43_async_event_t *ev) {
         security = cyw43_ll_wifi_parse_ie_auth(ie_rsn, 0);
     }
     if (ie_wpa != NULL) {
-        security = cyw43_ll_wifi_parse_ie_auth(ie_wpa, 1);
+        // Skip the vendor OUI and type so the fields line up with an RSN IE.
+        security |= cyw43_ll_wifi_parse_ie_auth(ie_wpa + 4, 1);
     }
     if (scan_res->bss.capability & DOT11_CAP_PRIVACY) {
         security |= CYW43_AUTH_FLAG_WEP_ENABLED;
