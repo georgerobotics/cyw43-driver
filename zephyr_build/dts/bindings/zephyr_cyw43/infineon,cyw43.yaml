@@ -1,0 +1,23 @@
+# Copyright (c) 2023, Beechwoods Software, Inc
+# SPDX-License-Identifier: Apache-2.0
+
+description: Infineon CYW43 module
+
+compatible: "infineon,cyw43"
+
+include: spi-device.yaml
+
+properties:
+  spi-max-frequency:
+    type: int
+    required: true
+
+  wl-on-gpios:
+    type: phandle-array
+
+  host-wake-gpios:
+    description: |
+      "interrupt" gpio. Signal from the Infineon module to the host
+      that an event has occurred.
+    type: phandle-array
+
