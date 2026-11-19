@@ -255,6 +255,16 @@ static inline int cyw43_wifi_get_interference_mode(cyw43_t *self, uint32_t *mode
 }
 
 /*!
+ * \brief Enable/disable passing of all multicast packets
+ *
+ * This method allows disabling filtering out packets sent to multicast ethernet mac addresses.
+ * \param self the driver state object. This should always be \c &cyw43_state
+ * \param value true to disable filtering of multicast packets
+ * \return 0 on success
+ */
+int cyw43_set_allmulti(cyw43_t *self, bool value);
+
+/*!
  * \brief Set the wifi power management mode
  *
  * This method sets the power management mode used by cyw43.
